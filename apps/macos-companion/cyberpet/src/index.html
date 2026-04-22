@@ -15,10 +15,12 @@
       </svg>
     </button>
 
+    <div id="tracker-dot" class="tracker-dot inactive" aria-label="Tracker status"></div>
     <div id="mascot-face" aria-label="Mascot">◕‿◕</div>
     <div id="mascot-state" aria-live="polite">idle</div>
   </div>
 
+  <!-- Settings + Debug overlay -->
   <div id="settings-panel" class="hidden" role="dialog" aria-label="Settings">
     <div id="settings-header">
       <span id="settings-title">Settings</span>
@@ -39,6 +41,33 @@
       </div>
 
       <div class="divider"></div>
+
+      <div class="setting-section">
+        <div class="setting-row">
+          <span class="setting-label">Tracker</span>
+          <span id="tracker-status" class="setting-value">—</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Debug panel -->
+      <div id="debug-section">
+        <button id="debug-toggle" class="ghost-btn">
+          <span id="debug-toggle-label">Show debug</span>
+          <svg id="debug-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div id="debug-panel" class="hidden">
+          <div class="debug-row"><span>face</span>  <span id="d-face">—</span></div>
+          <div class="debug-row"><span>yaw</span>   <span id="d-yaw">—</span></div>
+          <div class="debug-row"><span>pitch</span> <span id="d-pitch">—</span></div>
+          <div class="debug-row"><span>blink</span> <span id="d-blink">—</span></div>
+          <div class="debug-row"><span>smile</span> <span id="d-smile">—</span></div>
+          <div class="debug-row"><span>mouth</span> <span id="d-mouth">—</span></div>
+        </div>
+      </div>
 
       <p class="privacy-note">
         All processing happens locally. No video is stored or transmitted.

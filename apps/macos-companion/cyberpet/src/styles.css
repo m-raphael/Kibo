@@ -214,3 +214,80 @@ html, body {
   line-height: 1.55;
   color: var(--text-secondary);
 }
+
+/* Tracker status dot */
+.tracker-dot {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.tracker-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(48, 209, 88, 0.25);
+}
+
+.tracker-dot.inactive {
+  background: var(--text-tertiary);
+}
+
+.tracker-dot.error {
+  background: var(--danger);
+}
+
+/* Ghost button (debug toggle) */
+.ghost-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.ghost-btn:hover { color: var(--text-primary); }
+
+#debug-chevron {
+  transition: transform 0.18s ease;
+}
+
+#debug-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Debug panel */
+#debug-panel {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity 0.15s;
+}
+
+#debug-panel.hidden {
+  display: none;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.debug-row span:first-child {
+  color: var(--text-tertiary);
+  width: 36px;
+}

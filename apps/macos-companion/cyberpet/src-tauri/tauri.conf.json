@@ -36,6 +36,10 @@
         "NSCameraUsageDescription": "CyberPet reads your camera locally to track facial expressions for the mascot. No data leaves your device."
       }
     },
+    "resources": {
+      "../services/face-tracker/main.py": "face-tracker/main.py",
+      "../services/face-tracker/requirements.txt": "face-tracker/requirements.txt"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
