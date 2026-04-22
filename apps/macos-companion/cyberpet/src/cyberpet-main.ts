@@ -7,7 +7,7 @@ import {
   makeHysteresis,
   proposeState,
 } from '@cyberpet/mascot-core'
-import { buildMascotSvg, updateMascotState } from '@cyberpet/mascot-renderer'
+import { buildMascotSvg, updateMascotState, setPupilOffset } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,9 +53,31 @@ const dMouth = document.getElementById('d-mouth')!
 
 let mascotSvg: SVGSVGElement | null = null
 
+// Smoothed pupil offsets — exponential moving average reduces tracker jitter
+let pupilDx = 0
+let pupilDy = 0
+const PUPIL_LERP = 0.25   // weight of new sample (lower = smoother, more lag)
+
 function initMascotRenderer() {
   mascotSvg = buildMascotSvg()
   mascotFaceEl.replaceWith(mascotSvg)
+}
+
+function updatePupils(frame: TrackerFrame) {
+  if (!mascotSvg) return
+  if (!frame.face_detected) {
+    // Drift back to center
+    pupilDx = pupilDx * (1 - PUPIL_LERP)
+    pupilDy = pupilDy * (1 - PUPIL_LERP)
+  } else {
+    // yaw > 0 = head turns right → pupils drift right (+dx)
+    // pitch > 0 = head tilts up → pupils drift up (-dy in SVG)
+    const targetDx = (frame.head_pose.yaw  / 28) * 3
+    const targetDy = (frame.head_pose.pitch / 22) * -2.5
+    pupilDx = pupilDx + (targetDx - pupilDx) * PUPIL_LERP
+    pupilDy = pupilDy + (targetDy - pupilDy) * PUPIL_LERP
+  }
+  setPupilOffset(mascotSvg, pupilDx, pupilDy)
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +171,7 @@ async function startTracker() {
       const f = event.payload
       setTrackerDot(f.face_detected ? 'active' : 'inactive')
       proposeMascotState(mapTrackerToState(f))
+      updatePupils(f)
       updateDebug(f)
     })
 

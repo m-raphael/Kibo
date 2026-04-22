@@ -186,7 +186,17 @@ html, body {
 .mascot-svg[data-state="tired"]     .eye-pupil   { cy: 44; ry: 3; }
 .mascot-svg[data-state="tired"]     .mascot-antenna-ball { fill: var(--warning); }
 
-/* ---- SVG state-enter animation ---- */
+/* ---- Idle breathing — subtle pulse when no face detected ---- */
+@keyframes mascot-breathe {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.03); opacity: 0.88; }
+}
+
+.mascot-svg[data-state="idle"] {
+  animation: mascot-breathe 4s ease-in-out infinite;
+}
+
+/* ---- State-enter animation — interrupts breathing ---- */
 @keyframes mascot-enter {
   from { opacity: 0.4; transform: scale(0.88); }
   to   { opacity: 1;   transform: scale(1); }
