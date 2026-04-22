@@ -6,6 +6,7 @@ export default defineConfig({
   clearScreen: false,
   resolve: {
     alias: {
+      '@cyberpet/shared':          resolve(__dirname, 'packages/shared/src/index.ts'),
       '@cyberpet/mascot-core':     resolve(__dirname, 'packages/mascot-core/src/index.ts'),
       '@cyberpet/mascot-renderer': resolve(__dirname, 'packages/mascot-renderer/src/index.ts'),
     },

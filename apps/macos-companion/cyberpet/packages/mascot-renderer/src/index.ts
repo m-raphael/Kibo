@@ -1,4 +1,5 @@
 import type { MascotState } from '@cyberpet/mascot-core'
+import { clamp } from '@cyberpet/shared'
 
 // ---------------------------------------------------------------------------
 // SVG mascot renderer
@@ -99,8 +100,6 @@ export function updateMascotState(svg: SVGSVGElement, state: MascotState): void 
 // dx: horizontal offset in SVG units, positive = right  (-PUPIL_MAX_OFFSET..+PUPIL_MAX_OFFSET)
 // dy: vertical offset in SVG units, positive = down     (-PUPIL_MAX_OFFSET..+PUPIL_MAX_OFFSET)
 // ---------------------------------------------------------------------------
-
-function clamp(v: number, min: number, max: number) { return Math.max(min, Math.min(max, v)) }
 
 export function setPupilOffset(svg: SVGSVGElement, dx: number, dy: number): void {
   const cdx = clamp(dx, -PUPIL_MAX_OFFSET, PUPIL_MAX_OFFSET)
