@@ -7,6 +7,7 @@ import {
   makeHysteresis,
   proposeState,
 } from '@cyberpet/mascot-core'
+import { buildMascotSvg, updateMascotState } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,19 +20,6 @@ interface MascotProfile {
   last_state: MascotState
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const EMOJI: Record<MascotState, string> = {
-  idle:      '◕‿◕',
-  attentive: '◉‿◉',
-  listening: '◕_◕',
-  speaking:  '◕◡◕',
-  happy:     '◕ᴗ◕',
-  tired:     '◔_◔',
-}
-
 const STATE_HOLD_MS = 400
 
 // ---------------------------------------------------------------------------
@@ -39,7 +27,7 @@ const STATE_HOLD_MS = 400
 // ---------------------------------------------------------------------------
 
 const mascotCard    = document.getElementById('mascot-card')!
-const mascotFace    = document.getElementById('mascot-face')!
+const mascotFaceEl  = document.getElementById('mascot-face')!
 const mascotLabel   = document.getElementById('mascot-state')!
 const trackerDot    = document.getElementById('tracker-dot')!
 const settingsBtn   = document.getElementById('settings-btn')!
@@ -60,6 +48,17 @@ const dSmile = document.getElementById('d-smile')!
 const dMouth = document.getElementById('d-mouth')!
 
 // ---------------------------------------------------------------------------
+// Mascot SVG renderer
+// ---------------------------------------------------------------------------
+
+let mascotSvg: SVGSVGElement | null = null
+
+function initMascotRenderer() {
+  mascotSvg = buildMascotSvg()
+  mascotFaceEl.replaceWith(mascotSvg)
+}
+
+// ---------------------------------------------------------------------------
 // Mascot state machine
 // ---------------------------------------------------------------------------
 
@@ -67,11 +66,14 @@ const hysteresis = makeHysteresis(STATE_HOLD_MS)
 
 function applyMascotState(s: MascotState) {
   mascotCard.dataset.state = s
-  mascotFace.dataset.state = s
-  mascotFace.classList.remove('state-enter')
-  void mascotFace.offsetWidth
-  mascotFace.classList.add('state-enter')
-  mascotFace.textContent  = EMOJI[s]
+
+  if (mascotSvg) {
+    mascotSvg.classList.remove('state-enter')
+    void mascotSvg.getBoundingClientRect()
+    mascotSvg.classList.add('state-enter')
+    updateMascotState(mascotSvg, s)
+  }
+
   mascotLabel.textContent = s
   invoke('set_mascot_state', { state: s }).catch(() => {})
 }
@@ -220,6 +222,7 @@ function toggleDebug() {
 // ---------------------------------------------------------------------------
 
 async function init() {
+  initMascotRenderer()
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)
   debugToggle.addEventListener('click', toggleDebug)

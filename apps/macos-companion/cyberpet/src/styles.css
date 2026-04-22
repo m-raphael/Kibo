@@ -77,12 +77,123 @@ html, body {
   margin-bottom: 10px;
 }
 
+/* SVG mascot — shown when renderer is active, hidden otherwise */
+.mascot-svg {
+  display: block;
+  margin-bottom: 10px;
+  overflow: visible;
+}
+
+/* ---- SVG part base styles ---- */
+.mascot-head {
+  fill: rgba(50, 50, 58, 0.95);
+  stroke: rgba(255, 255, 255, 0.10);
+  stroke-width: 1;
+}
+
+.mascot-antenna {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.mascot-antenna-ball {
+  fill: var(--accent);
+}
+
+/* Eyes */
+.eye-bg {
+  fill: rgba(255, 255, 255, 0.06);
+  transition: ry 0.25s ease, rx 0.25s ease;
+}
+
+.eye-pupil {
+  fill: var(--accent);
+  transition: ry 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              cy 0.22s ease;
+}
+
+.eye-lid {
+  stroke: rgba(50, 50, 58, 0.95);
+  stroke-width: 6;
+  stroke-linecap: butt;
+  /* Used for tired state: slides down to cover top of eye */
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+/* Mouth parts — only one visible at a time */
+.mouth-neutral,
+.mouth-happy,
+.mouth-open,
+.mouth-wide,
+.mouth-tired {
+  display: none;
+  transition: opacity 0.2s ease;
+}
+
+.mouth-neutral {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mouth-happy,
+.mouth-tired {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mouth-open,
+.mouth-wide {
+  fill: rgba(0, 0, 0, 0.55);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1;
+}
+
+/* Blush */
+.mascot-blush {
+  fill: rgba(255, 100, 100, 0);
+  transition: fill 0.4s ease;
+}
+
+/* ---- State-driven part overrides ---- */
+
+/* idle */
+.mascot-svg[data-state="idle"]      .mouth-neutral { display: block; }
+
+/* attentive — wide eyes */
+.mascot-svg[data-state="attentive"] .mouth-neutral { display: block; }
+.mascot-svg[data-state="attentive"] .eye-pupil     { ry: 6; }
+
+/* listening */
+.mascot-svg[data-state="listening"] .mouth-open  { display: block; }
+
+/* speaking */
+.mascot-svg[data-state="speaking"]  .mouth-wide  { display: block; }
+.mascot-svg[data-state="speaking"]  .mascot-antenna-ball { fill: #30D158; }
+
+/* happy */
+.mascot-svg[data-state="happy"]     .mouth-happy { display: block; }
+.mascot-svg[data-state="happy"]     .mascot-blush { fill: rgba(255, 100, 100, 0.18); }
+.mascot-svg[data-state="happy"]     .eye-pupil    { ry: 3; }
+
+/* tired — droopy eyes and mouth */
+.mascot-svg[data-state="tired"]     .mouth-tired { display: block; }
+.mascot-svg[data-state="tired"]     .eye-lid     { transform: translateY(5px); }
+.mascot-svg[data-state="tired"]     .eye-pupil   { cy: 44; ry: 3; }
+.mascot-svg[data-state="tired"]     .mascot-antenna-ball { fill: var(--warning); }
+
+/* ---- SVG state-enter animation ---- */
 @keyframes mascot-enter {
   from { opacity: 0.4; transform: scale(0.88); }
   to   { opacity: 1;   transform: scale(1); }
 }
 
-#mascot-face.state-enter {
+#mascot-face.state-enter,
+.mascot-svg.state-enter {
   animation: mascot-enter 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
