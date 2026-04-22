@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+.cache/
+
+# Rust / Tauri
+target/
+gen/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Env and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

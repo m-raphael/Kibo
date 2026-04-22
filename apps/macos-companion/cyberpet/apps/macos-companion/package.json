@@ -1,0 +1,10 @@
+{
+  "name": "cyberpet-macos-companion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build"
+  }
+}

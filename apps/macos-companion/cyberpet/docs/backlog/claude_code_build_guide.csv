@@ -1,0 +1,7 @@
+Epic,Task ID,Task Name,Why build it,Priority,Phase
+Foundation,CP-001,App shell + macOS permissions,Required for desktop companion and camera flow,P0,Build
+Foundation,CP-002,Tracker service + JSON bridge,Feeds live face state into the app,P0,Build
+Foundation,CP-003,Mascot core state machine,Defines idle/attentive/listening/speaking behavior,P0,Build
+Foundation,CP-004,Privacy and scope docs,Locks in open-source and safety rules,P0,Build
+Foundation,CP-005,Apple design system docs,Guides UI styling for the mascot shell,P0,Build
+Foundation,CP-006,Security gate and pre-commit hooks,Prevents accidental secret leaks before push,P0,Build
