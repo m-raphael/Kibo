@@ -1,21 +1,18 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen }  from '@tauri-apps/api/event'
+import {
+  type MascotState,
+  type TrackerFrame,
+  mapTrackerToState,
+  makeHysteresis,
+  proposeState,
+} from '@cyberpet/mascot-core'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type PermissionState = 'notDetermined' | 'authorized' | 'denied' | 'restricted'
-type MascotState     = 'idle' | 'attentive' | 'listening' | 'speaking' | 'happy' | 'tired'
-
-interface HeadPose    { yaw: number; pitch: number; roll: number }
-interface TrackerFrame {
-  face_detected: boolean
-  head_pose:     HeadPose
-  blink:         number
-  smile:         number
-  mouth_open:    number
-}
 
 interface MascotProfile {
   name:       string
@@ -35,8 +32,6 @@ const EMOJI: Record<MascotState, string> = {
   tired:     '◔_◔',
 }
 
-// Minimum milliseconds a state must be suggested before committing to it.
-// Prevents rapid flicker between adjacent states.
 const STATE_HOLD_MS = 400
 
 // ---------------------------------------------------------------------------
@@ -65,62 +60,24 @@ const dSmile = document.getElementById('d-smile')!
 const dMouth = document.getElementById('d-mouth')!
 
 // ---------------------------------------------------------------------------
-// Mascot state machine with hysteresis
+// Mascot state machine
 // ---------------------------------------------------------------------------
 
-let currentState:   MascotState = 'idle'
-let pendingState:   MascotState = 'idle'
-let pendingSince:   number      = 0
-let stateFlushTimer: ReturnType<typeof setTimeout> | null = null
+const hysteresis = makeHysteresis(STATE_HOLD_MS)
 
 function applyMascotState(s: MascotState) {
-  if (s === currentState) return
-  currentState = s
-
-  // Drive state-specific CSS on both elements
   mascotCard.dataset.state = s
   mascotFace.dataset.state = s
   mascotFace.classList.remove('state-enter')
-  void mascotFace.offsetWidth  // force reflow to restart animation
+  void mascotFace.offsetWidth
   mascotFace.classList.add('state-enter')
-
   mascotFace.textContent  = EMOJI[s]
   mascotLabel.textContent = s
-
-  // Persist to Rust (fire-and-forget; state is cosmetic, loss is acceptable)
   invoke('set_mascot_state', { state: s }).catch(() => {})
 }
 
 function proposeMascotState(next: MascotState) {
-  if (next === currentState) {
-    pendingState = next
-    return
-  }
-  if (next !== pendingState) {
-    pendingState = next
-    pendingSince = performance.now()
-  }
-  // Only commit after the candidate has been stable for STATE_HOLD_MS
-  if (performance.now() - pendingSince >= STATE_HOLD_MS) {
-    applyMascotState(next)
-  } else if (!stateFlushTimer) {
-    const remaining = STATE_HOLD_MS - (performance.now() - pendingSince)
-    stateFlushTimer = setTimeout(() => {
-      stateFlushTimer = null
-      applyMascotState(pendingState)
-    }, remaining)
-  }
-}
-
-function frameToMascotState(f: TrackerFrame): MascotState {
-  if (!f.face_detected) return 'idle'
-  if (f.blink      > 0.75) return 'tired'
-  if (f.smile      > 0.55) return 'happy'
-  if (f.mouth_open > 0.45) return 'speaking'
-  if (f.mouth_open > 0.18) return 'listening'
-  const moved = Math.abs(f.head_pose.yaw) + Math.abs(f.head_pose.pitch)
-  if (moved > 12) return 'attentive'
-  return 'idle'
+  proposeState(hysteresis, next, STATE_HOLD_MS, applyMascotState)
 }
 
 // ---------------------------------------------------------------------------
@@ -184,12 +141,12 @@ function updateDebug(f: TrackerFrame) {
 async function startTracker() {
   try {
     await invoke('start_tracker')
-    setTrackerDot('inactive') // running but waiting for face
+    setTrackerDot('inactive')
 
     await listen<TrackerFrame>('tracker:frame', (event) => {
       const f = event.payload
       setTrackerDot(f.face_detected ? 'active' : 'inactive')
-      proposeMascotState(frameToMascotState(f))
+      proposeMascotState(mapTrackerToState(f))
       updateDebug(f)
     })
 
@@ -281,7 +238,6 @@ async function init() {
     }
   })
 
-  // Restore last known state from profile
   try {
     const profile = await invoke<MascotProfile>('get_mascot_state')
     applyMascotState(profile.last_state)
