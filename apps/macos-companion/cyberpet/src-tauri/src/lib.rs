@@ -69,6 +69,68 @@ fn open_camera_settings() {
 }
 
 // ---------------------------------------------------------------------------
+// Mascot profile
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum MascotState {
+    #[default]
+    Idle,
+    Attentive,
+    Listening,
+    Speaking,
+    Happy,
+    Tired,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct MascotProfile {
+    name: String,
+    last_state: MascotState,
+}
+
+fn mascot_profile_path(app: &tauri::AppHandle) -> PathBuf {
+    app.path()
+        .app_data_dir()
+        .expect("app data dir unavailable")
+        .join("mascot_profile.json")
+}
+
+fn load_mascot_profile(app: &tauri::AppHandle) -> MascotProfile {
+    let path = mascot_profile_path(app);
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(|| MascotProfile {
+            name: "CyberPet".to_string(),
+            last_state: MascotState::Idle,
+        })
+}
+
+fn save_mascot_profile(app: &tauri::AppHandle, profile: &MascotProfile) {
+    let path = mascot_profile_path(app);
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string_pretty(profile) {
+        let _ = fs::write(path, json);
+    }
+}
+
+#[tauri::command]
+fn get_mascot_state(app: tauri::AppHandle) -> MascotProfile {
+    load_mascot_profile(&app)
+}
+
+#[tauri::command]
+fn set_mascot_state(app: tauri::AppHandle, state: MascotState) {
+    let mut profile = load_mascot_profile(&app);
+    profile.last_state = state;
+    save_mascot_profile(&app, &profile);
+}
+
+// ---------------------------------------------------------------------------
 // Tracker bridge
 // ---------------------------------------------------------------------------
 
@@ -126,11 +188,9 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         for line in BufReader::new(stdout).lines() {
             match line {
                 Ok(l) if !l.is_empty() => {
-                    // Forward raw JSON to the frontend; parse to validate first
                     if let Ok(frame) = serde_json::from_str::<TrackerFrame>(&l) {
                         let _ = app.emit("tracker:frame", frame);
                     } else {
-                        // Might be an error object from the script
                         let _ = app.emit("tracker:error", l);
                     }
                 }
@@ -157,6 +217,8 @@ pub fn run() {
             store_permission_state,
             open_camera_settings,
             start_tracker,
+            get_mascot_state,
+            set_mascot_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

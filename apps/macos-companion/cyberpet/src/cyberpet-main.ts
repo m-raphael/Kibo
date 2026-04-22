@@ -17,6 +17,11 @@ interface TrackerFrame {
   mouth_open:    number
 }
 
+interface MascotProfile {
+  name:       string
+  last_state: MascotState
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -30,10 +35,15 @@ const EMOJI: Record<MascotState, string> = {
   tired:     '◔_◔',
 }
 
+// Minimum milliseconds a state must be suggested before committing to it.
+// Prevents rapid flicker between adjacent states.
+const STATE_HOLD_MS = 400
+
 // ---------------------------------------------------------------------------
 // DOM refs
 // ---------------------------------------------------------------------------
 
+const mascotCard    = document.getElementById('mascot-card')!
 const mascotFace    = document.getElementById('mascot-face')!
 const mascotLabel   = document.getElementById('mascot-state')!
 const trackerDot    = document.getElementById('tracker-dot')!
@@ -55,12 +65,51 @@ const dSmile = document.getElementById('d-smile')!
 const dMouth = document.getElementById('d-mouth')!
 
 // ---------------------------------------------------------------------------
-// Mascot
+// Mascot state machine with hysteresis
 // ---------------------------------------------------------------------------
 
-function setMascotState(s: MascotState) {
+let currentState:   MascotState = 'idle'
+let pendingState:   MascotState = 'idle'
+let pendingSince:   number      = 0
+let stateFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+function applyMascotState(s: MascotState) {
+  if (s === currentState) return
+  currentState = s
+
+  // Drive state-specific CSS on both elements
+  mascotCard.dataset.state = s
+  mascotFace.dataset.state = s
+  mascotFace.classList.remove('state-enter')
+  void mascotFace.offsetWidth  // force reflow to restart animation
+  mascotFace.classList.add('state-enter')
+
   mascotFace.textContent  = EMOJI[s]
   mascotLabel.textContent = s
+
+  // Persist to Rust (fire-and-forget; state is cosmetic, loss is acceptable)
+  invoke('set_mascot_state', { state: s }).catch(() => {})
+}
+
+function proposeMascotState(next: MascotState) {
+  if (next === currentState) {
+    pendingState = next
+    return
+  }
+  if (next !== pendingState) {
+    pendingState = next
+    pendingSince = performance.now()
+  }
+  // Only commit after the candidate has been stable for STATE_HOLD_MS
+  if (performance.now() - pendingSince >= STATE_HOLD_MS) {
+    applyMascotState(next)
+  } else if (!stateFlushTimer) {
+    const remaining = STATE_HOLD_MS - (performance.now() - pendingSince)
+    stateFlushTimer = setTimeout(() => {
+      stateFlushTimer = null
+      applyMascotState(pendingState)
+    }, remaining)
+  }
 }
 
 function frameToMascotState(f: TrackerFrame): MascotState {
@@ -140,7 +189,7 @@ async function startTracker() {
     await listen<TrackerFrame>('tracker:frame', (event) => {
       const f = event.payload
       setTrackerDot(f.face_detected ? 'active' : 'inactive')
-      setMascotState(frameToMascotState(f))
+      proposeMascotState(frameToMascotState(f))
       updateDebug(f)
     })
 
@@ -232,6 +281,14 @@ async function init() {
     }
   })
 
+  // Restore last known state from profile
+  try {
+    const profile = await invoke<MascotProfile>('get_mascot_state')
+    applyMascotState(profile.last_state)
+  } catch {
+    applyMascotState('idle')
+  }
+
   const state = await readPermissionState()
   renderCameraUI(state)
 
@@ -240,8 +297,6 @@ async function init() {
   } else if (state === 'authorized') {
     startTracker()
   }
-
-  setMascotState('idle')
 }
 
 init()
