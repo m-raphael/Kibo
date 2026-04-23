@@ -164,9 +164,8 @@ html, body {
 /* idle */
 .mascot-svg[data-state="idle"]      .mouth-neutral { display: block; }
 
-/* attentive — wide eyes */
+/* attentive — wide eyes (pupil ry driven by JS setAttribute) */
 .mascot-svg[data-state="attentive"] .mouth-neutral { display: block; }
-.mascot-svg[data-state="attentive"] .eye-pupil     { ry: 6; }
 
 /* listening */
 .mascot-svg[data-state="listening"] .mouth-open  { display: block; }
@@ -175,15 +174,13 @@ html, body {
 .mascot-svg[data-state="speaking"]  .mouth-wide  { display: block; }
 .mascot-svg[data-state="speaking"]  .mascot-antenna-ball { fill: #30D158; }
 
-/* happy */
-.mascot-svg[data-state="happy"]     .mouth-happy { display: block; }
+/* happy (pupil ry driven by JS setAttribute) */
+.mascot-svg[data-state="happy"]     .mouth-happy  { display: block; }
 .mascot-svg[data-state="happy"]     .mascot-blush { fill: rgba(255, 100, 100, 0.18); }
-.mascot-svg[data-state="happy"]     .eye-pupil    { ry: 3; }
 
-/* tired — droopy eyes and mouth */
-.mascot-svg[data-state="tired"]     .mouth-tired { display: block; }
-.mascot-svg[data-state="tired"]     .eye-lid     { transform: translateY(5px); }
-.mascot-svg[data-state="tired"]     .eye-pupil   { cy: 44; ry: 3; }
+/* tired — droopy eyes and mouth (pupil cy/ry driven by JS setAttribute) */
+.mascot-svg[data-state="tired"]     .mouth-tired  { display: block; }
+.mascot-svg[data-state="tired"]     .eye-lid      { transform: translateY(5px); }
 .mascot-svg[data-state="tired"]     .mascot-antenna-ball { fill: var(--warning); }
 
 /* ---- Idle breathing — subtle pulse when no face detected ---- */

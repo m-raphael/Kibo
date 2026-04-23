@@ -10,7 +10,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@cyberpet/shared":          ["packages/shared/src/index.ts"],
+      "@cyberpet/mascot-core":     ["packages/mascot-core/src/index.ts"],
+      "@cyberpet/mascot-renderer": ["packages/mascot-renderer/src/index.ts"]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts", "packages/*/src"]
 }

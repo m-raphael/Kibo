@@ -59,8 +59,9 @@ let pupilDy = 0
 const PUPIL_LERP = 0.25   // weight of new sample (lower = smoother, more lag)
 
 function initMascotRenderer() {
-  mascotSvg = buildMascotSvg()
-  mascotFaceEl.replaceWith(mascotSvg)
+  const svg = buildMascotSvg()
+  mascotSvg = svg
+  mascotFaceEl.replaceWith(svg)
 }
 
 function updatePupils(frame: TrackerFrame) {

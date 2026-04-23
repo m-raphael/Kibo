@@ -20,10 +20,20 @@ function el<K extends keyof SVGElementTagNameMap>(
   return e
 }
 
-// Base pupil centers in SVG coordinate space
+// Base pupil centers in SVG coordinate space (cy mutated per state for tired droop)
 const LEFT_PUPIL_BASE  = { cx: 37, cy: 42 }
 const RIGHT_PUPIL_BASE = { cx: 63, cy: 42 }
 const PUPIL_MAX_OFFSET = 3   // px within the 8px eye socket radius
+
+// Per-state pupil geometry — driven by setAttribute, not CSS (cx/cy/ry are not CSS properties)
+const PUPIL_SHAPE: Record<MascotState, { ry: number; baseCy: number }> = {
+  idle:      { ry: 5, baseCy: 42 },
+  attentive: { ry: 6, baseCy: 42 },
+  listening: { ry: 5, baseCy: 42 },
+  speaking:  { ry: 5, baseCy: 42 },
+  happy:     { ry: 3, baseCy: 42 },
+  tired:     { ry: 3, baseCy: 44 },
+}
 
 // ---------------------------------------------------------------------------
 // Build SVG
@@ -86,11 +96,21 @@ export function buildMascotSvg(): SVGSVGElement {
 }
 
 // ---------------------------------------------------------------------------
-// State update — CSS handles visuals via data-state
+// State update — CSS handles colours/visibility; JS drives geometry attributes
 // ---------------------------------------------------------------------------
 
 export function updateMascotState(svg: SVGSVGElement, state: MascotState): void {
   svg.dataset.state = state
+
+  const { ry, baseCy } = PUPIL_SHAPE[state]
+  LEFT_PUPIL_BASE.cy  = baseCy
+  RIGHT_PUPIL_BASE.cy = baseCy
+
+  svg.querySelectorAll<SVGEllipseElement>('.eye-pupil').forEach(p => {
+    p.setAttribute('ry', String(ry))
+    // Reset cy to state base; setPupilOffset will add tracking delta on top
+    p.setAttribute('cy', String(baseCy))
+  })
 }
 
 // ---------------------------------------------------------------------------
