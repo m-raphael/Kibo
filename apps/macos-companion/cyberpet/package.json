@@ -1,12 +1,38 @@
 {
   "name": "cyberpet",
-  "private": true,
+  "description": "Local-first macOS companion that animates a reactive robot mascot using camera-driven facial geometry — no data leaves the device.",
   "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Raphael",
+    "email": "raphael@paaolms.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m-raphael/cyberpet"
+  },
+  "keywords": [
+    "tauri",
+    "macos",
+    "companion",
+    "face-tracking",
+    "mediapipe",
+    "mascot",
+    "local-first"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "tauri": "tauri"
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"
