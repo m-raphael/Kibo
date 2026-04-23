@@ -11,6 +11,14 @@ gen/
 .DS_Store
 .AppleDouble
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
 # Env and secrets
 .env
 .env.*
