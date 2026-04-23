@@ -1,3 +1,5 @@
-mediapipe>=0.10
-opencv-python-headless>=4.8
-numpy>=1.23
+# Pinned to exact versions for reproducible, auditable installs.
+# To upgrade: change the version pin, run pip-audit, then re-test.
+mediapipe==0.10.21
+opencv-python-headless==4.10.0.84
+numpy==1.26.4

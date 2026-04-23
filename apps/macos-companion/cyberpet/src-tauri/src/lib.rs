@@ -3,7 +3,11 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager};
+
+// Guards against spawning more than one tracker subprocess.
+static TRACKER_RUNNING: AtomicBool = AtomicBool::new(false);
 
 // ---------------------------------------------------------------------------
 // Permission state
@@ -126,6 +130,11 @@ fn get_mascot_state(app: tauri::AppHandle) -> MascotProfile {
 #[tauri::command]
 fn set_mascot_state(app: tauri::AppHandle, state: MascotState) {
     let mut profile = load_mascot_profile(&app);
+    // Clamp name to 64 ASCII-printable characters to prevent unbounded writes
+    profile.name = profile.name.chars()
+        .filter(|c| c.is_ascii_graphic() || *c == ' ')
+        .take(64)
+        .collect();
     profile.last_state = state;
     save_mascot_profile(&app, &profile);
 }
@@ -165,8 +174,14 @@ fn tracker_script(app: &tauri::AppHandle) -> PathBuf {
 
 #[tauri::command]
 fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
+    // Prevent multiple concurrent tracker subprocesses
+    if TRACKER_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+        return Ok(()); // already running — silently succeed
+    }
+
     let script = tracker_script(&app);
     if !script.exists() {
+        TRACKER_RUNNING.store(false, Ordering::SeqCst);
         return Err(format!("tracker not found: {}", script.display()));
     }
 
@@ -179,6 +194,7 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         {
             Ok(c) => c,
             Err(e) => {
+                TRACKER_RUNNING.store(false, Ordering::SeqCst);
                 let _ = app.emit("tracker:error", e.to_string());
                 return;
             }
@@ -199,6 +215,7 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         }
 
         let _ = child.wait();
+        TRACKER_RUNNING.store(false, Ordering::SeqCst);
     });
 
     Ok(())

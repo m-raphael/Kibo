@@ -10,23 +10,28 @@ on:
         required: false
         default: ""
 
+permissions:
+  contents: read
+
 jobs:
   tauri-build-macos:
     name: Tauri macOS build
     runs-on: macos-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
           node-version: 22
           cache: npm
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4305c38b25b97b78e70b946e6521af95de40ac85  # stable 2025-04
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6  # v2.7.8
         with:
           workspaces: src-tauri -> target
 
@@ -37,7 +42,7 @@ jobs:
         run: npm ci
 
       - name: Tauri build
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@af845ee8f64b4c2e9f9f65c0eed3e5b58b96ffe8  # v0.5.17
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE:          ${{ secrets.APPLE_CERTIFICATE }}
@@ -50,7 +55,7 @@ jobs:
           args: ${{ inputs.target && format('--target {0}', inputs.target) || '' }}
 
       - name: Upload .app bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08  # v4.6.0
         with:
           name: CyberPet-macos-staging
           path: src-tauri/target/release/bundle/macos/*.app
