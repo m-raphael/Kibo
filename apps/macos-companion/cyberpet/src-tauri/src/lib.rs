@@ -161,7 +161,6 @@ struct TrackerFrame {
 
 fn tracker_script(app: &tauri::AppHandle) -> PathBuf {
     if cfg!(debug_assertions) {
-        // Dev: resolve from Cargo manifest dir (src-tauri/) → project root
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../services/face-tracker/main.py")
     } else {
@@ -170,6 +169,36 @@ fn tracker_script(app: &tauri::AppHandle) -> PathBuf {
             .expect("resource dir unavailable")
             .join("face-tracker/main.py")
     }
+}
+
+// Find the first Python 3.10+ executable available on this machine.
+// Tries versioned names first so we never accidentally use Python 2 or 3.7.
+fn find_python() -> Option<String> {
+    let candidates = [
+        "python3.14", "python3.13", "python3.12", "python3.11", "python3.10",
+        "python3", "python",
+    ];
+    for name in &candidates {
+        if let Ok(out) = Command::new(name)
+            .args(["--version"])
+            .output()
+        {
+            let ver = String::from_utf8_lossy(&out.stdout).to_string()
+                + &String::from_utf8_lossy(&out.stderr);
+            // Accept only 3.10 and above
+            if let Some(v) = ver.strip_prefix("Python ") {
+                let parts: Vec<&str> = v.trim().splitn(3, '.').collect();
+                if parts.len() >= 2 {
+                    let major: u32 = parts[0].parse().unwrap_or(0);
+                    let minor: u32 = parts[1].parse().unwrap_or(0);
+                    if major == 3 && minor >= 10 {
+                        return Some(name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 #[tauri::command]
@@ -185,8 +214,17 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         return Err(format!("tracker not found: {}", script.display()));
     }
 
+    let python = match find_python() {
+        Some(p) => p,
+        None => {
+            TRACKER_RUNNING.store(false, Ordering::SeqCst);
+            let _ = app.emit("tracker:error", "python_not_found: Python 3.10+ is required. Install it from https://python.org");
+            return Ok(());
+        }
+    };
+
     std::thread::spawn(move || {
-        let mut child = match Command::new("python3")
+        let mut child = match Command::new(&python)
             .arg(&script)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
