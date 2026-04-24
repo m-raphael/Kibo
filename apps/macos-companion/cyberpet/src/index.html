@@ -4,10 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CyberPet</title>
+  <!-- Nunito: MiSans fallback for environments without MiSans installed -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div id="mascot-card" data-tauri-drag-region>
+  <div id="mascot-card" data-tauri-drag-region data-theme="xiaomi">
+
     <button id="settings-btn" aria-label="Settings" tabindex="0">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden="true">
         <path d="M7.5 9.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
@@ -22,6 +27,9 @@
 
   <!-- Settings + Debug overlay -->
   <div id="settings-panel" class="hidden" role="dialog" aria-label="Settings">
+    <!-- Xiaomi-style drag handle -->
+    <div class="panel-handle"></div>
+
     <div id="settings-header">
       <span id="settings-title">Settings</span>
       <button id="settings-close" aria-label="Close settings">

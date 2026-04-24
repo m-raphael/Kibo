@@ -7,13 +7,17 @@ import {
   makeHysteresis,
   proposeState,
 } from '@cyberpet/mascot-core'
-import { buildMascotSvg, updateMascotState, setPupilOffset } from '@cyberpet/mascot-renderer'
+import {
+  buildMascotSvg, updateMascotState, setPupilOffset,
+  buildMascotOrb, updateOrbState, setOrbEyesVisible, setOrbEyeOffset,
+} from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type PermissionState = 'notDetermined' | 'authorized' | 'denied' | 'restricted'
+type Theme = 'apple' | 'xiaomi'
 
 interface MascotProfile {
   name:       string
@@ -48,37 +52,50 @@ const dSmile = document.getElementById('d-smile')!
 const dMouth = document.getElementById('d-mouth')!
 
 // ---------------------------------------------------------------------------
-// Mascot SVG renderer
+// Theme detection
+// ---------------------------------------------------------------------------
+
+const THEME: Theme = (mascotCard.dataset.theme as Theme) ?? 'apple'
+
+// ---------------------------------------------------------------------------
+// Mascot renderer — initialised once, either SVG (Apple) or Orb (Xiaomi)
 // ---------------------------------------------------------------------------
 
 let mascotSvg: SVGSVGElement | null = null
+let mascotOrb: HTMLElement    | null = null
 
-// Smoothed pupil offsets — exponential moving average reduces tracker jitter
 let pupilDx = 0
 let pupilDy = 0
-const PUPIL_LERP = 0.25   // weight of new sample (lower = smoother, more lag)
+const PUPIL_LERP = 0.25
 
 function initMascotRenderer() {
-  const svg = buildMascotSvg()
-  mascotSvg = svg
-  mascotFaceEl.replaceWith(svg)
+  if (THEME === 'xiaomi') {
+    mascotOrb = buildMascotOrb()
+    mascotFaceEl.replaceWith(mascotOrb)
+  } else {
+    const svg = buildMascotSvg()
+    mascotSvg = svg
+    mascotFaceEl.replaceWith(svg)
+  }
 }
 
 function updatePupils(frame: TrackerFrame) {
-  if (!mascotSvg) return
   if (!frame.face_detected) {
-    // Drift back to center
     pupilDx = pupilDx * (1 - PUPIL_LERP)
     pupilDy = pupilDy * (1 - PUPIL_LERP)
   } else {
-    // yaw > 0 = head turns right → pupils drift right (+dx)
-    // pitch > 0 = head tilts up → pupils drift up (-dy in SVG)
-    const targetDx = (frame.head_pose.yaw  / 28) * 3
+    const targetDx = (frame.head_pose.yaw   / 28) * 3
     const targetDy = (frame.head_pose.pitch / 22) * -2.5
     pupilDx = pupilDx + (targetDx - pupilDx) * PUPIL_LERP
     pupilDy = pupilDy + (targetDy - pupilDy) * PUPIL_LERP
   }
-  setPupilOffset(mascotSvg, pupilDx, pupilDy)
+
+  if (mascotOrb) {
+    setOrbEyesVisible(mascotOrb, frame.face_detected)
+    setOrbEyeOffset(mascotOrb, pupilDx * 2.5, pupilDy * 2)
+  } else if (mascotSvg) {
+    setPupilOffset(mascotSvg, pupilDx, pupilDy)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +107,12 @@ const hysteresis = makeHysteresis(STATE_HOLD_MS)
 function applyMascotState(s: MascotState) {
   mascotCard.dataset.state = s
 
-  if (mascotSvg) {
+  if (mascotOrb) {
+    mascotOrb.classList.remove('state-enter')
+    void mascotOrb.getBoundingClientRect()
+    mascotOrb.classList.add('state-enter')
+    updateOrbState(mascotOrb, s)
+  } else if (mascotSvg) {
     mascotSvg.classList.remove('state-enter')
     void mascotSvg.getBoundingClientRect()
     mascotSvg.classList.add('state-enter')
@@ -127,7 +149,7 @@ function renderCameraUI(state: PermissionState) {
   }
   cameraStatus.textContent = labels[state]
   cameraStatus.className = 'setting-value'
-  if (state === 'authorized') cameraStatus.classList.add('authorized')
+  if (state === 'authorized')  cameraStatus.classList.add('authorized')
   else if (state === 'denied') cameraStatus.classList.add('denied')
   else if (state === 'restricted') cameraStatus.classList.add('restricted')
 
@@ -149,9 +171,9 @@ function setTrackerDot(status: 'active' | 'inactive' | 'error') {
   trackerDot.className = `tracker-dot ${status}`
   trackerStatus.textContent =
     status === 'active' ? 'Running' : status === 'error' ? 'Error' : 'Stopped'
-  if (status === 'active') trackerStatus.className = 'setting-value authorized'
-  else if (status === 'error') trackerStatus.className = 'setting-value denied'
-  else trackerStatus.className = 'setting-value'
+  if (status === 'active')      trackerStatus.className = 'setting-value authorized'
+  else if (status === 'error')  trackerStatus.className = 'setting-value denied'
+  else                          trackerStatus.className = 'setting-value'
 }
 
 function updateDebug(f: TrackerFrame) {

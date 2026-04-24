@@ -441,3 +441,296 @@ html, body {
   color: var(--text-tertiary);
   width: 36px;
 }
+
+/* ==========================================================================
+   XIAOMI / HYPEROS THEME
+   Scope: #mascot-card[data-theme="xiaomi"] and .mascot-orb
+   ========================================================================== */
+
+/* ---- @property: animatable CSS custom properties for gradient colors ---- */
+@property --orb-c1 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #FF8C00;
+}
+@property --orb-c2 {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #AA2200;
+}
+
+/* ---- Token overrides ---- */
+#mascot-card[data-theme="xiaomi"] {
+  --bg:             #0D0D12;
+  --surface:        rgba(255, 255, 255, 0.07);
+  --border:         rgba(255, 255, 255, 0.08);
+  --accent:         #FF6900;
+  --accent-hover:   #FF8C00;
+  --text-secondary: rgba(255, 255, 255, 0.60);
+  --text-tertiary:  rgba(255, 255, 255, 0.28);
+  --success:        #39FF14;
+  --warning:        #FFAA00;
+  --danger:         #FF3B30;
+  --radius:         28px;
+  --font:           "MiSans", "Nunito", "PingFang SC", system-ui, sans-serif;
+
+  background: var(--bg);
+  border-radius: var(--radius);
+  font-family: var(--font);
+}
+
+/* Dot-grid background texture */
+#mascot-card[data-theme="xiaomi"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Everything above the dot grid */
+#mascot-card[data-theme="xiaomi"] > * { position: relative; z-index: 1; }
+
+/* Settings button — bottom-right in Xiaomi theme */
+#mascot-card[data-theme="xiaomi"] #settings-btn {
+  top: auto;
+  bottom: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+/* Tracker dot — slightly larger */
+#mascot-card[data-theme="xiaomi"] .tracker-dot {
+  width: 8px;
+  height: 8px;
+}
+#mascot-card[data-theme="xiaomi"] .tracker-dot.active {
+  background: #39FF14;
+  box-shadow: 0 0 0 3px rgba(57,255,20,0.22);
+}
+
+/* State label — sentence-case, not uppercase */
+#mascot-card[data-theme="xiaomi"] #mascot-state {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Settings panel — slides UP from bottom */
+#mascot-card[data-theme="xiaomi"] + #settings-panel,
+body:has([data-theme="xiaomi"]) #settings-panel {
+  background: rgba(14, 14, 22, 0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 28px 28px 0 0;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  transform: translateY(0);
+  transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.20s ease;
+}
+
+body:has([data-theme="xiaomi"]) #settings-panel.hidden {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.panel-handle {
+  display: none;
+}
+body:has([data-theme="xiaomi"]) .panel-handle {
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  margin: 12px auto 4px;
+}
+
+/* Primary button — Xiaomi orange gradient */
+body:has([data-theme="xiaomi"]) .primary-btn {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF6900 60%, #E55000 100%);
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(255, 105, 0, 0.40);
+  transition: box-shadow 0.12s ease, transform 0.08s ease, opacity 0.12s;
+  font-family: var(--font);
+  font-size: 15px;
+}
+body:has([data-theme="xiaomi"]) .primary-btn:hover {
+  background: linear-gradient(135deg, #FFA020 0%, #FF8000 60%, #FF5500 100%);
+  box-shadow: 0 6px 32px rgba(255, 105, 0, 0.60);
+  transform: scale(1.01);
+}
+body:has([data-theme="xiaomi"]) .primary-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(255, 105, 0, 0.30);
+}
+
+/* Focus ring — orange */
+body:has([data-theme="xiaomi"]) *:focus-visible {
+  outline-color: #FF6900;
+}
+
+/* ---- ORB mascot ---- */
+
+.mascot-orb {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orb-core {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  --orb-c1: #FF8C00;
+  --orb-c2: #AA2200;
+  background: radial-gradient(circle at 38% 35%, var(--orb-c1) 0%, var(--orb-c2) 100%);
+  transition:
+    --orb-c1     300ms ease-out,
+    --orb-c2     300ms ease-out,
+    border-radius 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter       400ms ease;
+}
+
+/* ---- Orb shape per state ---- */
+.mascot-orb[data-state="idle"]      .orb-core { border-radius: 50%; }
+.mascot-orb[data-state="attentive"] .orb-core { border-radius: 50% 50% 50% 50% / 44% 44% 56% 56%; }
+.mascot-orb[data-state="listening"] .orb-core { border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%; }
+.mascot-orb[data-state="speaking"]  .orb-core { border-radius: 50%; }
+.mascot-orb[data-state="happy"]     .orb-core { border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%; }
+.mascot-orb[data-state="tired"]     .orb-core { border-radius: 50% 50% 48% 52% / 42% 42% 58% 58%; }
+
+/* ---- Orb gradient + glow per state ---- */
+.mascot-orb[data-state="idle"] .orb-core {
+  --orb-c1: #FF8C00;
+  --orb-c2: #AA2200;
+  filter: drop-shadow(0 0 22px rgba(255,105,0,0.50)) drop-shadow(0 0 55px rgba(255,60,0,0.20));
+}
+.mascot-orb[data-state="attentive"] .orb-core {
+  --orb-c1: #FFAA00;
+  --orb-c2: #FF6900;
+  filter: drop-shadow(0 0 30px rgba(255,170,0,0.65)) drop-shadow(0 0 72px rgba(255,105,0,0.28));
+}
+.mascot-orb[data-state="listening"] .orb-core {
+  --orb-c1: #FFD000;
+  --orb-c2: #FF8C00;
+  filter: drop-shadow(0 0 36px rgba(255,200,0,0.70)) drop-shadow(0 0 88px rgba(255,140,0,0.30));
+}
+.mascot-orb[data-state="speaking"] .orb-core {
+  --orb-c1: #FF8C00;
+  --orb-c2: #FF4500;
+  filter: drop-shadow(0 0 44px rgba(255,140,0,0.80)) drop-shadow(0 0 110px rgba(255,70,0,0.35));
+}
+.mascot-orb[data-state="happy"] .orb-core {
+  --orb-c1: #39FF14;
+  --orb-c2: #00CC88;
+  filter: drop-shadow(0 0 40px rgba(57,255,20,0.75)) drop-shadow(0 0 90px rgba(0,200,100,0.30));
+}
+.mascot-orb[data-state="tired"] .orb-core {
+  --orb-c1: #7A44B8;
+  --orb-c2: #2D1A5E;
+  filter: drop-shadow(0 0 22px rgba(106,63,160,0.50)) drop-shadow(0 0 55px rgba(45,26,94,0.22));
+}
+
+/* ---- Idle breathing (always on) ---- */
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1.00); }
+  50%       { transform: scale(1.065); }
+}
+.mascot-orb[data-state="idle"] .orb-core {
+  animation: orb-breathe 3s ease-in-out infinite;
+}
+
+/* ---- Speaking oscillation ---- */
+@keyframes orb-speak {
+  0%, 100% { transform: scale(1.00) scaleX(1.00); }
+  25%       { transform: scale(1.05) scaleX(0.96); }
+  75%       { transform: scale(0.97) scaleX(1.04); }
+}
+.mascot-orb[data-state="speaking"] .orb-core {
+  animation: orb-speak 140ms ease-in-out infinite;
+}
+
+/* ---- State-enter pop animation ---- */
+@keyframes orb-enter {
+  from { opacity: 0.35; transform: scale(0.82); }
+  to   { opacity: 1;    transform: scale(1); }
+}
+.mascot-orb.state-enter .orb-core {
+  animation: orb-enter 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ---- Orb eyes ---- */
+.orb-eyes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.orb-eyes.visible {
+  opacity: 1;
+}
+
+.orb-eye {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  filter: blur(0.4px);
+  top: calc(50% - 14px);
+  /* Compose tracking offset (--tx/--ty set by JS) with state scaleY */
+  --tx: 0px;
+  --ty: 0px;
+  --sy: 1;
+  transform: translate(var(--tx), var(--ty)) scaleY(var(--sy));
+  transition: --sy 200ms ease, width 180ms ease, height 180ms ease;
+}
+.orb-eye-left  { left: calc(50% - 24px); }
+.orb-eye-right { left: calc(50% + 11px); }
+
+.mascot-orb[data-state="attentive"] .orb-eye { --sy: 1.25; }
+.mascot-orb[data-state="happy"]     .orb-eye { --sy: 0.38; border-radius: 50% 50% 40% 40%; }
+.mascot-orb[data-state="tired"]     .orb-eye { --sy: 0.32; }
+.mascot-orb[data-state="speaking"]  .orb-eye { width: 11px; height: 11px; }
+
+/* ---- Particles ---- */
+@keyframes orb-particle {
+  from {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateX(0px) scale(1.1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(var(--dist)) scale(0.2);
+  }
+}
+
+.orb-particle {
+  position: absolute;
+  top: calc(50% - 3px);
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color, #FF8C00);
+  transform-origin: 3px 3px;
+  animation: orb-particle 420ms ease-out var(--delay, 0ms) forwards;
+  pointer-events: none;
+}
