@@ -19,10 +19,13 @@ __pycache__/
 .venv/
 venv/
 
-# Env and secrets (.env.example is intentionally committed)
+# Env and secrets (.env.example is intentionally committed; all others are not)
 .env
 .env.local
 .env.*.local
+.env.staging
+.env.production
+.env.development
 *.pem
 *.key
 *.p12
