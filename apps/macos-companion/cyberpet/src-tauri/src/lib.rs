@@ -173,26 +173,36 @@ fn tracker_script(app: &tauri::AppHandle) -> PathBuf {
 
 // Find the first Python 3.10+ executable available on this machine.
 // Tries versioned names first so we never accidentally use Python 2 or 3.7.
-fn find_python() -> Option<String> {
+// Resolve a Python 3.10+ executable to its absolute path via `which`.
+// Using an absolute path prevents PATH-based substitution attacks where a
+// malicious binary earlier in PATH could shadow the real interpreter.
+fn find_python() -> Option<PathBuf> {
     let candidates = [
         "python3.14", "python3.13", "python3.12", "python3.11", "python3.10",
         "python3", "python",
     ];
     for name in &candidates {
-        if let Ok(out) = Command::new(name)
-            .args(["--version"])
-            .output()
-        {
+        // Resolve to absolute path first
+        let abs = match Command::new("which").arg(name).output() {
+            Ok(out) if out.status.success() => {
+                let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                PathBuf::from(path)
+            }
+            _ => continue,
+        };
+        if !abs.exists() { continue; }
+
+        // Verify it is actually Python 3.10+
+        if let Ok(out) = Command::new(&abs).arg("--version").output() {
             let ver = String::from_utf8_lossy(&out.stdout).to_string()
                 + &String::from_utf8_lossy(&out.stderr);
-            // Accept only 3.10 and above
             if let Some(v) = ver.strip_prefix("Python ") {
                 let parts: Vec<&str> = v.trim().splitn(3, '.').collect();
                 if parts.len() >= 2 {
                     let major: u32 = parts[0].parse().unwrap_or(0);
                     let minor: u32 = parts[1].parse().unwrap_or(0);
                     if major == 3 && minor >= 10 {
-                        return Some(name.to_string());
+                        return Some(abs);
                     }
                 }
             }
@@ -214,7 +224,7 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         return Err(format!("tracker not found: {}", script.display()));
     }
 
-    let python = match find_python() {
+    let python_path = match find_python() {
         Some(p) => p,
         None => {
             TRACKER_RUNNING.store(false, Ordering::SeqCst);
@@ -224,7 +234,7 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
     };
 
     std::thread::spawn(move || {
-        let mut child = match Command::new(&python)
+        let mut child = match Command::new(&python_path)
             .arg(&script)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
