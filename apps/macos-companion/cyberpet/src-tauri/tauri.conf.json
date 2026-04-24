@@ -32,9 +32,7 @@
     "targets": "all",
     "macOS": {
       "entitlements": "./entitlements.plist",
-      "infoPlist": {
-        "NSCameraUsageDescription": "CyberPet reads your camera locally to track facial expressions for the mascot. No data leaves your device."
-      }
+      "infoPlist": "./Info.plist"
     },
     "resources": {
       "../services/face-tracker/main.py": "face-tracker/main.py",
