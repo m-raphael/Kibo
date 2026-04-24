@@ -1,0 +1,31 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "cyberpet",
+    "tauri",
+    "mediapipe",
+    "misans",
+    "hyperos",
+    "miui",
+    "squircle",
+    "rgba",
+    "nvm",
+    "vite",
+    "nums",
+    "lerp",
+    "noEmit",
+    "rustup",
+    "solvePnP",
+    "pyflakes",
+    "gitleaks",
+    "paaolms"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "target",
+    "dist",
+    "*.lock",
+    "package-lock.json"
+  ]
+}

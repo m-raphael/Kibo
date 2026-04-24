@@ -1,0 +1,13 @@
+{
+  "name": "kibo",
+  "private": true,
+  "description": "Kibo monorepo — root workspace scripts delegate to apps.",
+  "scripts": {
+    "dev":           "npm run dev          --prefix apps/macos-companion/cyberpet",
+    "build":         "npm run build        --prefix apps/macos-companion/cyberpet",
+    "build:staging": "npm run build:staging --prefix apps/macos-companion/cyberpet",
+    "typecheck":     "npm run typecheck    --prefix apps/macos-companion/cyberpet",
+    "tauri:dev":     "npm run tauri:dev    --prefix apps/macos-companion/cyberpet",
+    "tauri:build":   "npm run tauri:build  --prefix apps/macos-companion/cyberpet"
+  }
+}
