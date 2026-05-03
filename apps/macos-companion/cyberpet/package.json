@@ -27,20 +27,22 @@
   },
   "type": "module",
   "scripts": {
-    "dev":              "vite --mode development",
-    "build":            "vite build --mode production",
-    "build:staging":    "vite build --mode staging",
-    "typecheck":        "tsc --noEmit",
-    "tauri":            "tauri",
-    "tauri:dev":        "tauri dev",
-    "tauri:build":      "tauri build",
-    "tauri:staging":    "tauri build -- --mode staging"
+    "dev": "vite --mode development",
+    "build": "vite build --mode production",
+    "build:staging": "vite build --mode staging",
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:staging": "tauri build -- --mode staging"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2"
+    "@tauri-apps/api": "^2",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@types/three": "^0.184.0",
     "typescript": "^5",
     "vite": "^6"
   }

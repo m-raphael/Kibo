@@ -75,6 +75,17 @@ html, body {
   font-size: 68px;
   line-height: 1;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Three.js canvas inside mascot-face */
+#mascot-face canvas {
+  display: block;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
 }
 
 /* SVG mascot — shown when renderer is active, hidden otherwise */

@@ -10,14 +10,16 @@ import {
 import {
   buildMascotSvg, updateMascotState, setPupilOffset,
   buildMascotOrb, updateOrbState, setOrbEyesVisible, setOrbEyeOffset,
+  buildMascot3d,
 } from '@cyberpet/mascot-renderer'
+import type { ThreeMascotHandle } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type PermissionState = 'notDetermined' | 'authorized' | 'denied' | 'restricted'
-type Theme = 'apple' | 'xiaomi'
+type Theme = 'apple' | 'xiaomi' | 'animal'
 
 interface MascotProfile {
   name:       string
@@ -61,8 +63,9 @@ const THEME: Theme = (mascotCard.dataset.theme as Theme) ?? 'apple'
 // Mascot renderer — initialised once, either SVG (Apple) or Orb (Xiaomi)
 // ---------------------------------------------------------------------------
 
-let mascotSvg: SVGSVGElement | null = null
-let mascotOrb: HTMLElement    | null = null
+let mascotSvg: SVGSVGElement    | null = null
+let mascotOrb: HTMLElement       | null = null
+let mascot3d: ThreeMascotHandle  | null = null
 
 let pupilDx = 0
 let pupilDy = 0
@@ -72,6 +75,11 @@ function initMascotRenderer() {
   if (THEME === 'xiaomi') {
     mascotOrb = buildMascotOrb()
     mascotFaceEl.replaceWith(mascotOrb)
+  } else if (THEME === 'animal') {
+    const h = buildMascot3d(mascotFaceEl)
+    mascot3d = h
+    mascotFaceEl.textContent = ''
+    mascotFaceEl.appendChild(h.element)
   } else {
     const svg = buildMascotSvg()
     mascotSvg = svg
@@ -90,7 +98,9 @@ function updatePupils(frame: TrackerFrame) {
     pupilDy = pupilDy + (targetDy - pupilDy) * PUPIL_LERP
   }
 
-  if (mascotOrb) {
+  if (mascot3d) {
+    mascot3d.update(undefined, pupilDx, pupilDy, frame.face_detected)
+  } else if (mascotOrb) {
     setOrbEyesVisible(mascotOrb, frame.face_detected)
     setOrbEyeOffset(mascotOrb, pupilDx * 2.5, pupilDy * 2)
   } else if (mascotSvg) {
@@ -107,7 +117,9 @@ const hysteresis = makeHysteresis(STATE_HOLD_MS)
 function applyMascotState(s: MascotState) {
   mascotCard.dataset.state = s
 
-  if (mascotOrb) {
+  if (mascot3d) {
+    mascot3d.update(s, pupilDx, pupilDy, true)
+  } else if (mascotOrb) {
     mascotOrb.classList.remove('state-enter')
     void mascotOrb.getBoundingClientRect()
     mascotOrb.classList.add('state-enter')

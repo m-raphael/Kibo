@@ -2,7 +2,7 @@
 
 > A local-first macOS companion that watches your face and reacts — no cloud, no storage, no tracking.
 
-CyberPet sits in the corner of your screen as a small robot. It uses your webcam to read five geometric signals per frame (head pose, blink, smile, mouth opening) and maps them to six expressive states. Everything runs on-device. No video, no biometrics, and no personal data ever leaves your machine.
+CyberPet sits in the corner of your screen as a reactive 3D animal mascot. It uses your webcam to read five geometric signals per frame (head pose, blink, smile, mouth opening) and maps them to six expressive states — the cat perks its ears when you turn your head, squints when you smile, and droops when you blink slowly. Everything runs on-device. No video, no biometrics, and no personal data ever leaves your machine.
 
 [![Security](https://github.com/m-raphael/cyberpet/actions/workflows/security.yml/badge.svg)](https://github.com/m-raphael/cyberpet/actions/workflows/security.yml)
 [![Staging Build](https://github.com/m-raphael/cyberpet/actions/workflows/staging.yml/badge.svg)](https://github.com/m-raphael/cyberpet/actions/workflows/staging.yml)
@@ -19,7 +19,7 @@ CyberPet sits in the corner of your screen as a small robot. It uses your webcam
 │  ┌──────────────────────────────────────────────────┐   │
 │  │  WebView  (Vite 6 · TypeScript 5 · CSS)          │   │
 │  │                                                  │   │
-│  │  @cyberpet/mascot-renderer  ◄── SVG robot face   │   │
+│  │  @cyberpet/mascot-renderer  ◄── 3D cat (Three.js)  │   │
 │  │  @cyberpet/mascot-core      ◄── state machine    │   │
 │  │  @cyberpet/shared           ◄── math utilities   │   │
 │  └──────────────┬───────────────────────────────────┘   │
@@ -45,7 +45,7 @@ CyberPet sits in the corner of your screen as a small robot. It uses your webcam
 | Desktop shell | Tauri 2 (Rust) |
 | Frontend | TypeScript 5, Vite 6 |
 | Face tracking | Python 3.10+, MediaPipe FaceMesh, OpenCV, NumPy |
-| Rendering | Inline SVG, CSS custom properties, `setAttribute` for geometry |
+| Rendering | Three.js 3D (WebGL), inline SVG, CSS custom properties |
 | Persistence | JSON files in `$APP_DATA/cyberpet/` |
 | CI/CD | GitHub Actions |
 | Secret scanning | gitleaks v8 (pre-commit + CI) |
@@ -56,12 +56,12 @@ CyberPet sits in the corner of your screen as a small robot. It uses your webcam
 
 | State | Expression | Trigger |
 |---|---|---|
-| `idle` | Neutral face, breathing loop | No face detected |
-| `attentive` | Wide pupils | Head turned/tilted > 12° |
-| `listening` | Small open mouth | Mouth open 0.18–0.45 |
-| `speaking` | Large open mouth | Mouth open > 0.45 |
-| `happy` | Arc smile, blush, narrow pupils | Smile score > 0.55 |
-| `tired` | Drooped eyelids, droop mouth | Blink score > 0.75 |
+| `idle` | Gentle breathing, auto-blinks every 4s | No face detected |
+| `attentive` | Ears perk up, head lifts, eyes widen | Head turned/tilted > 12° |
+| `listening` | Head tilts, one ear rotates forward | Mouth open 0.18–0.45 |
+| `speaking` | Mouth opens, subtle body bounce | Mouth open > 0.45 |
+| `happy` | Eyes squint, body bounces, tail wags | Smile score > 0.55 |
+| `tired` | Eyes droop, head lowers, body slumps | Blink score > 0.75 |
 
 State transitions are debounced with a 400 ms hysteresis to prevent flickering. Pupils track head pose in real time at ~30 fps with an exponential moving average smoother (α = 0.25).
 
@@ -170,7 +170,7 @@ cyberpet/
 │
 ├── packages/                     # Internal TypeScript packages
 │   ├── mascot-core/              # MascotState types, tracker→state mapping, hysteresis
-│   ├── mascot-renderer/          # SVG mascot builder, updateMascotState(), setPupilOffset()
+│   ├── mascot-renderer/          # SVG + Orb + Three.js 3D cat renderers
 │   └── shared/                   # clamp, lerp, expLerp, mapRange
 │
 ├── services/

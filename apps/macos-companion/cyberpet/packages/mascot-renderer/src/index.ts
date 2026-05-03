@@ -166,3 +166,10 @@ function spawnOrbParticles(orb: HTMLElement, state: MascotState): void {
     p.addEventListener('animationend', () => p.remove(), { once: true })
   }
 }
+
+// ---------------------------------------------------------------------------
+// 3D mascot renderer (animal theme)
+// ---------------------------------------------------------------------------
+
+export { buildMascot3d } from './3d/index.js'
+export type { ThreeMascotHandle } from './3d/index.js'
