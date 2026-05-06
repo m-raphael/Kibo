@@ -108,43 +108,83 @@
 .trait-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 8px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   transition:
-    background  0.14s ease,
+    background   0.14s ease,
     border-color 0.14s ease,
-    opacity     0.20s ease;
+    opacity      0.22s ease;
 }
 
 .trait-chip:hover {
   background: rgba(255, 255, 255, 0.07);
 }
 
-/* Confidence arc — circular indicator */
+/* Left side: arc + label stack */
+.chip-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Confidence arc — conic-gradient ring */
 .chip-arc {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: conic-gradient(
     #FF6900 calc(var(--conf, 0) * 360deg),
     rgba(255, 255, 255, 0.10) 0deg
   );
-  box-shadow: 0 0 0 2px rgba(255, 105, 0, 0.20);
+  box-shadow: 0 0 0 2px rgba(255, 105, 0, 0.18);
   transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* Chip label */
+/* Label + "Not used" stacked */
+.chip-label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .chip-label {
-  flex: 1;
   font-size: 13px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.88);
   letter-spacing: -0.005em;
-  transition: color 0.20s ease;
+  transition: color 0.20s ease, text-decoration 0.20s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Task 7: "Not used" tag — hidden by default, visible on removed */
+.chip-not-used {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 69, 58, 0.70);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, max-height 0.18s ease;
+}
+
+/* Right side: badge + button */
+.chip-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
 }
 
 /* Confidence badge */
@@ -155,12 +195,10 @@
   color: #FF6900;
   letter-spacing: 0.02em;
   transition: color 0.20s ease;
-  flex-shrink: 0;
 }
 
-/* Remove button */
+/* Remove / restore button */
 .chip-remove {
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
   display: flex;
@@ -185,40 +223,47 @@
   outline-offset: 2px;
 }
 
-/* Removed / "not used" state */
+/* ── Removed / "Not used" state ── */
 .trait-chip.chip-removed {
-  opacity: 0.36;
+  opacity: 0.42;
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.04);
 }
 
 .trait-chip.chip-removed .chip-arc {
   background: conic-gradient(
-    rgba(255, 255, 255, 0.18) calc(var(--conf, 0) * 360deg),
-    rgba(255, 255, 255, 0.06) 0deg
+    rgba(255, 255, 255, 0.15) calc(var(--conf, 0) * 360deg),
+    rgba(255, 255, 255, 0.05) 0deg
   );
   box-shadow: none;
 }
 
+/* Task 7: label strikethrough */
 .trait-chip.chip-removed .chip-label {
   text-decoration: line-through;
-  color: rgba(255, 255, 255, 0.40);
+  color: rgba(255, 255, 255, 0.38);
+}
+
+/* Task 7: "Not used" tag becomes visible */
+.trait-chip.chip-removed .chip-not-used {
+  opacity: 1;
+  max-height: 14px;
 }
 
 .trait-chip.chip-removed .chip-confidence {
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.25);
 }
 
+/* Restore button styling when chip is removed */
 .trait-chip.chip-removed .chip-remove {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.30);
+  background: rgba(48, 209, 88, 0.08);
+  border-color: rgba(48, 209, 88, 0.22);
+  color: rgba(48, 209, 88, 0.60);
 }
 
-/* Restore hover on removed chip */
 .trait-chip.chip-removed .chip-remove:hover {
-  background: rgba(48, 209, 88, 0.16);
-  border-color: rgba(48, 209, 88, 0.35);
+  background: rgba(48, 209, 88, 0.18);
+  border-color: rgba(48, 209, 88, 0.40);
   color: #30D158;
 }
 
@@ -262,6 +307,21 @@
 #trait-review-save:focus-visible {
   outline: 2px solid #FF6900;
   outline-offset: 3px;
+}
+
+/* Task 8: disabled state when zero traits active */
+#trait-review-save:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.28);
+  cursor: not-allowed;
+  transform: none;
+}
+
+#trait-review-save:disabled:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  transform: none;
 }
 
 /* Chip entrance animation */

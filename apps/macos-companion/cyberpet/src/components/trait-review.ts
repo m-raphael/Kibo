@@ -5,14 +5,13 @@ import type { MascotProfile, Trait, AnimalType } from '@cyberpet/mascot-profile'
 // ---------------------------------------------------------------------------
 
 export interface TraitReviewHandle {
-  element:        HTMLElement
+  element:         HTMLElement
   getActiveTraits: () => Trait[]
-  onSave:         (cb: (traits: Trait[], animal: AnimalType) => void) => void
-  destroy:        () => void
+  onSave:          (cb: (traits: Trait[], animal: AnimalType) => void) => void
+  destroy:         () => void
 }
 
 export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
-  // Mutable set of removed trait ids
   const removed = new Set<string>()
   let saveCallback: ((traits: Trait[], animal: AnimalType) => void) | null = null
 
@@ -24,6 +23,7 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
   panel.id = 'trait-review-panel'
   panel.setAttribute('role', 'dialog')
   panel.setAttribute('aria-label', 'Trait review')
+  panel.setAttribute('aria-modal', 'true')
   panel.classList.add('hidden')
 
   // Header
@@ -41,11 +41,10 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
     <path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
   </svg>`
   closeBtn.addEventListener('click', hide)
-  closeBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') hide() })
 
   header.append(title, closeBtn)
 
-  // Subheader
+  // Subheader with live active count
   const sub = document.createElement('p')
   sub.id = 'trait-review-sub'
   sub.textContent = 'Remove traits you disagree with before saving.'
@@ -60,15 +59,20 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
     chipList.appendChild(buildChip(trait))
   })
 
-  // Footer
+  // ---------------------------------------------------------------------------
+  // Footer — Task 8: disabled until ≥1 trait is active
+  // ---------------------------------------------------------------------------
+
   const footer = document.createElement('div')
   footer.id = 'trait-review-footer'
 
   const saveBtn = document.createElement('button')
   saveBtn.id = 'trait-review-save'
   saveBtn.className = 'primary-btn'
-  saveBtn.textContent = 'Save traits'
+  updateSaveBtn()
+
   saveBtn.addEventListener('click', () => {
+    if (saveBtn.disabled) return
     const active = getActiveTraits()
     saveCallback?.(active, profile.animal)
     hide()
@@ -91,53 +95,91 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
     li.dataset.id = trait.id
     li.setAttribute('role', 'listitem')
 
-    // Confidence arc indicator
+    // Left: confidence arc + label column
+    const left = document.createElement('span')
+    left.className = 'chip-left'
+
     const arc = document.createElement('span')
     arc.className = 'chip-arc'
     arc.setAttribute('aria-hidden', 'true')
     arc.style.setProperty('--conf', String(trait.confidence))
 
-    // Label
+    const labelWrap = document.createElement('span')
+    labelWrap.className = 'chip-label-wrap'
+
     const label = document.createElement('span')
     label.className = 'chip-label'
     label.textContent = trait.label
 
-    // Confidence badge
+    // Task 7: "Not used" tag — hidden until chip is removed
+    const notUsed = document.createElement('span')
+    notUsed.className = 'chip-not-used'
+    notUsed.textContent = 'Not used'
+    notUsed.setAttribute('aria-hidden', 'true')
+
+    labelWrap.append(label, notUsed)
+    left.append(arc, labelWrap)
+
+    // Right: confidence badge + remove button
+    const right = document.createElement('span')
+    right.className = 'chip-right'
+
     const badge = document.createElement('span')
     badge.className = 'chip-confidence'
     badge.textContent = `${Math.round(trait.confidence * 100)}%`
     badge.setAttribute('aria-label', `${Math.round(trait.confidence * 100)} percent confidence`)
 
-    // Remove button
     const removeBtn = document.createElement('button')
     removeBtn.className = 'chip-remove'
     removeBtn.setAttribute('aria-label', `Remove ${trait.label} trait`)
-    removeBtn.setAttribute('tabindex', '0')
     removeBtn.innerHTML = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
       <path d="M1 1l7 7M8 1L1 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`
 
-    removeBtn.addEventListener('click', () => toggleRemove(trait.id, li, removeBtn))
-    removeBtn.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        toggleRemove(trait.id, li, removeBtn)
-      }
+    removeBtn.addEventListener('click', () => toggleRemove(trait, li, removeBtn))
+    removeBtn.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRemove(trait, li, removeBtn) }
     })
 
-    li.append(arc, label, badge, removeBtn)
+    right.append(badge, removeBtn)
+    li.append(left, right)
     return li
   }
 
-  function toggleRemove(id: string, li: HTMLLIElement, btn: HTMLButtonElement) {
-    if (removed.has(id)) {
-      removed.delete(id)
-      li.classList.remove('chip-removed')
-      btn.setAttribute('aria-label', `Remove ${id} trait`)
-    } else {
-      removed.add(id)
+  function toggleRemove(trait: Trait, li: HTMLLIElement, btn: HTMLButtonElement) {
+    const isRemoving = !removed.has(trait.id)
+    if (isRemoving) {
+      removed.add(trait.id)
       li.classList.add('chip-removed')
-      btn.setAttribute('aria-label', `Restore ${id} trait`)
+      btn.setAttribute('aria-label', `Restore ${trait.label} trait`)
+      btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+        <path d="M4.5 1v7M1 4.5h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>`
+    } else {
+      removed.delete(trait.id)
+      li.classList.remove('chip-removed')
+      btn.setAttribute('aria-label', `Remove ${trait.label} trait`)
+      btn.innerHTML = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+        <path d="M1 1l7 7M8 1L1 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>`
+    }
+    updateSaveBtn()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Save button — Task 8: label tracks count, disabled at zero
+  // ---------------------------------------------------------------------------
+
+  function updateSaveBtn() {
+    const count = profile.traits.length - removed.size
+    if (count === 0) {
+      saveBtn.disabled = true
+      saveBtn.textContent = 'No traits selected'
+      saveBtn.setAttribute('aria-disabled', 'true')
+    } else {
+      saveBtn.disabled = false
+      saveBtn.textContent = `Save ${count} trait${count === 1 ? '' : 's'}`
+      saveBtn.removeAttribute('aria-disabled')
     }
   }
 
@@ -156,10 +198,7 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
     panel.addEventListener('transitionend', () => panel.classList.add('hidden'), { once: true })
   }
 
-  // Keyboard trap: Escape closes
-  panel.addEventListener('keydown', e => {
-    if (e.key === 'Escape') hide()
-  })
+  panel.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape') hide() })
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -169,7 +208,6 @@ export function buildTraitReview(profile: MascotProfile): TraitReviewHandle {
     return profile.traits.filter((t: Trait) => !removed.has(t.id))
   }
 
-  // Expose show so the caller can trigger it
   ;(panel as unknown as { show: () => void }).show = show
 
   return {
