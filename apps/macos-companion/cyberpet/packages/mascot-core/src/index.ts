@@ -4,6 +4,8 @@
 
 export type MascotState = 'idle' | 'attentive' | 'listening' | 'speaking' | 'happy' | 'tired'
 
+export type { FacialProfile, AnimalType } from './profile.js'
+
 export interface TrackerFrame {
   face_detected: boolean
   head_pose:     { yaw: number; pitch: number; roll: number }

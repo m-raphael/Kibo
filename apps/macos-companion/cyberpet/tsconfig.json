@@ -15,7 +15,8 @@
     "paths": {
       "@cyberpet/shared":          ["packages/shared/src/index.ts"],
       "@cyberpet/mascot-core":     ["packages/mascot-core/src/index.ts"],
-      "@cyberpet/mascot-renderer": ["packages/mascot-renderer/src/index.ts"]
+      "@cyberpet/mascot-renderer": ["packages/mascot-renderer/src/index.ts"],
+      "@cyberpet/mascot-profile":  ["packages/mascot-profile/src/types.ts"]
     }
   },
   "include": ["src", "vite.config.ts", "packages/*/src"]

@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen }  from '@tauri-apps/api/event'
+import { MOCK_PROFILE } from '@cyberpet/mascot-profile'
+import { buildTraitReview } from './components/trait-review.js'
 import {
   type MascotState,
   type TrackerFrame,
@@ -36,6 +38,7 @@ const mascotCard     = document.getElementById('mascot-card')!
 const mascotFaceEl   = document.getElementById('mascot-face')!
 const mascotLabel    = document.getElementById('mascot-state')!
 const mascotSelector = document.getElementById('mascot-selector')!
+const traitReviewBtn = document.getElementById('trait-review-btn')!
 const trackerDot    = document.getElementById('tracker-dot')!
 const settingsBtn   = document.getElementById('settings-btn')!
 const settingsPanel = document.getElementById('settings-panel')!
@@ -282,8 +285,27 @@ function toggleDebug() {
 // Init
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Trait review
+// ---------------------------------------------------------------------------
+
+function initTraitReview() {
+  const review = buildTraitReview(MOCK_PROFILE)
+  review.onSave((traits, animal) => {
+    console.info('[trait-review] saved', { animal, traits })
+    // Future: send to Rust backend via invoke('save_traits', { animal, traits })
+  })
+  mascotCard.appendChild(review.element)
+
+  traitReviewBtn.addEventListener('click', () => {
+    closeSettings()
+    ;(review.element as HTMLElement & { show: () => void }).show()
+  })
+}
+
 async function init() {
   initMascotRenderer()
+  initTraitReview()
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)
   debugToggle.addEventListener('click', toggleDebug)

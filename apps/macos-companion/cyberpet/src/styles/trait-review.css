@@ -1,0 +1,282 @@
+/* ==========================================================================
+   TRAIT REVIEW PANEL
+   Slides up from bottom, Xiaomi dark theme
+   ========================================================================== */
+
+#trait-review-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 14, 22, 0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 28px 28px 0 0;
+  top: auto;
+  bottom: 0;
+  height: auto;
+  max-height: 88%;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: none;
+
+  transform: translateY(100%);
+  opacity: 0;
+  transition:
+    transform 0.30s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity   0.22s ease;
+  z-index: 20;
+}
+
+#trait-review-panel.hidden {
+  display: none;
+}
+
+#trait-review-panel.open {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Drag handle */
+#trait-review-panel::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  margin: 12px auto 2px;
+  flex-shrink: 0;
+}
+
+/* Header */
+#trait-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+#trait-review-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.90);
+  letter-spacing: -0.01em;
+}
+
+#trait-review-close {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.50);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+#trait-review-close:hover  { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.88); }
+#trait-review-close:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+/* Subheader */
+#trait-review-sub {
+  padding: 10px 18px 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+/* Chip list */
+#trait-chip-list {
+  list-style: none;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: none;
+}
+#trait-chip-list::-webkit-scrollbar { display: none; }
+
+/* Individual chip */
+.trait-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  transition:
+    background  0.14s ease,
+    border-color 0.14s ease,
+    opacity     0.20s ease;
+}
+
+.trait-chip:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Confidence arc — circular indicator */
+.chip-arc {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #FF6900 calc(var(--conf, 0) * 360deg),
+    rgba(255, 255, 255, 0.10) 0deg
+  );
+  box-shadow: 0 0 0 2px rgba(255, 105, 0, 0.20);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Chip label */
+.chip-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.005em;
+  transition: color 0.20s ease;
+}
+
+/* Confidence badge */
+.chip-confidence {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #FF6900;
+  letter-spacing: 0.02em;
+  transition: color 0.20s ease;
+  flex-shrink: 0;
+}
+
+/* Remove button */
+.chip-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.chip-remove:hover {
+  background: rgba(255, 69, 58, 0.18);
+  border-color: rgba(255, 69, 58, 0.40);
+  color: #FF453A;
+}
+
+.chip-remove:focus-visible {
+  outline: 2px solid #FF6900;
+  outline-offset: 2px;
+}
+
+/* Removed / "not used" state */
+.trait-chip.chip-removed {
+  opacity: 0.36;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.trait-chip.chip-removed .chip-arc {
+  background: conic-gradient(
+    rgba(255, 255, 255, 0.18) calc(var(--conf, 0) * 360deg),
+    rgba(255, 255, 255, 0.06) 0deg
+  );
+  box-shadow: none;
+}
+
+.trait-chip.chip-removed .chip-label {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.40);
+}
+
+.trait-chip.chip-removed .chip-confidence {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.trait-chip.chip-removed .chip-remove {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.30);
+}
+
+/* Restore hover on removed chip */
+.trait-chip.chip-removed .chip-remove:hover {
+  background: rgba(48, 209, 88, 0.16);
+  border-color: rgba(48, 209, 88, 0.35);
+  color: #30D158;
+}
+
+/* Footer */
+#trait-review-footer {
+  padding: 12px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#trait-review-save {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF6900 60%, #E55000 100%);
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(255, 105, 0, 0.40);
+  transition: box-shadow 0.12s ease, transform 0.08s ease, opacity 0.12s;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  cursor: pointer;
+}
+
+#trait-review-save:hover  {
+  background: linear-gradient(135deg, #FFA020 0%, #FF8000 60%, #FF5500 100%);
+  box-shadow: 0 6px 28px rgba(255, 105, 0, 0.55);
+  transform: scale(1.01);
+}
+
+#trait-review-save:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(255, 105, 0, 0.30);
+}
+
+#trait-review-save:focus-visible {
+  outline: 2px solid #FF6900;
+  outline-offset: 3px;
+}
+
+/* Chip entrance animation */
+@keyframes chip-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.trait-chip {
+  animation: chip-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.trait-chip:nth-child(1) { animation-delay: 0.04s; }
+.trait-chip:nth-child(2) { animation-delay: 0.08s; }
+.trait-chip:nth-child(3) { animation-delay: 0.12s; }
+.trait-chip:nth-child(4) { animation-delay: 0.16s; }
+.trait-chip:nth-child(5) { animation-delay: 0.20s; }
+.trait-chip:nth-child(6) { animation-delay: 0.24s; }
