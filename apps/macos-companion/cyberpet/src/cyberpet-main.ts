@@ -10,9 +10,9 @@ import {
 import {
   buildMascotSvg, updateMascotState, setPupilOffset,
   buildMascotOrb, updateOrbState, setOrbEyesVisible, setOrbEyeOffset,
-  buildMascot3d,
+  buildMascot3d, MASCOT_LIST,
 } from '@cyberpet/mascot-renderer'
-import type { ThreeMascotHandle } from '@cyberpet/mascot-renderer'
+import type { ThreeMascotHandle, MascotId } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,9 +32,10 @@ const STATE_HOLD_MS = 400
 // DOM refs
 // ---------------------------------------------------------------------------
 
-const mascotCard    = document.getElementById('mascot-card')!
-const mascotFaceEl  = document.getElementById('mascot-face')!
-const mascotLabel   = document.getElementById('mascot-state')!
+const mascotCard     = document.getElementById('mascot-card')!
+const mascotFaceEl   = document.getElementById('mascot-face')!
+const mascotLabel    = document.getElementById('mascot-state')!
+const mascotSelector = document.getElementById('mascot-selector')!
 const trackerDot    = document.getElementById('tracker-dot')!
 const settingsBtn   = document.getElementById('settings-btn')!
 const settingsPanel = document.getElementById('settings-panel')!
@@ -72,14 +73,16 @@ let pupilDy = 0
 const PUPIL_LERP = 0.25
 
 function initMascotRenderer() {
-  if (THEME === 'xiaomi') {
-    mascotOrb = buildMascotOrb()
-    mascotFaceEl.replaceWith(mascotOrb)
-  } else if (THEME === 'animal') {
+  if (THEME === 'xiaomi' || THEME === 'animal') {
     const h = buildMascot3d(mascotFaceEl)
     mascot3d = h
     mascotFaceEl.textContent = ''
     mascotFaceEl.appendChild(h.element)
+    // URL param override → localStorage → default 'cat'
+    const urlMascot = new URLSearchParams(location.search).get('mascot') as MascotId | null
+    const saved = urlMascot ?? savedMascotId()
+    if (saved !== 'cat') h.setMascot(saved)
+    buildSelectorUI(saved)
   } else {
     const svg = buildMascotSvg()
     mascotSvg = svg
@@ -314,6 +317,58 @@ async function init() {
   } else if (state === 'authorized') {
     startTracker()
   }
+}
+
+// ---------------------------------------------------------------------------
+// Mascot selector
+// ---------------------------------------------------------------------------
+
+const MASCOT_STORAGE_KEY = 'cyberpet:mascot-id'
+
+function savedMascotId(): MascotId {
+  return (localStorage.getItem(MASCOT_STORAGE_KEY) as MascotId | null) ?? 'cat'
+}
+
+function buildSelectorUI(activeMascot: MascotId = savedMascotId()) {
+  mascotSelector.innerHTML = ''
+
+  MASCOT_LIST.forEach(meta => {
+    const btn = document.createElement('button')
+    btn.className = 'mascot-pill'
+    btn.dataset.id = meta.id
+    btn.dataset.active = String(meta.id === activeMascot)
+    btn.dataset.locked = String(!meta.available)
+    btn.setAttribute('aria-label', meta.label + (meta.available ? '' : ' (coming soon)'))
+    btn.setAttribute('aria-pressed', String(meta.id === activeMascot))
+    btn.disabled = !meta.available
+
+    const emoji = document.createElement('span')
+    emoji.className = 'pill-emoji'
+    emoji.textContent = meta.emoji
+
+    const dot = document.createElement('span')
+    dot.className = 'pill-dot'
+    dot.setAttribute('aria-hidden', 'true')
+
+    btn.append(emoji, dot)
+    mascotSelector.append(btn)
+
+    if (!meta.available) return
+
+    btn.addEventListener('click', () => {
+      const id = meta.id as MascotId
+      if (!mascot3d) return
+
+      mascot3d.setMascot(id)
+      localStorage.setItem(MASCOT_STORAGE_KEY, id)
+
+      mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
+        const active = p.dataset.id === id
+        p.dataset.active = String(active)
+        p.setAttribute('aria-pressed', String(active))
+      })
+    })
+  })
 }
 
 init()

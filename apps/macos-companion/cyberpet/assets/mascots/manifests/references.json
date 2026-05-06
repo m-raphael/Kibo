@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "note": "Reference-only. These images are design inspiration — not shipped assets.",
+  "references": [
+    {
+      "id": "cat-holding-tv",
+      "mascot": "cat",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/cat+holding+tv.png",
+      "type": "reference-only"
+    },
+    {
+      "id": "funny-cat",
+      "mascot": "cat",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/funny+cat.png",
+      "type": "reference-only"
+    },
+    {
+      "id": "gibbon-chibi",
+      "mascot": "gibbon",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_A+chibi-style+cartoon+gibbon+in+the+exact+style%2C+proportions%2C+and+composition+as+the++505519+%281%29.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "rabbit-anthropomorphic",
+      "mascot": "rabbit",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_A+full-body%2C+anthropomorphic+white+rabbit+standing+upright%2C+with+realistic+fur+and+ex+586935.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "pelican-anthropomorphic",
+      "mascot": "pelican",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_Full-body%2C+anthropomorphic++pelican+mascot+with+human-like+proportions%2C+standing+in+a+905885.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "cow-anthropomorphic",
+      "mascot": "cow",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_Full-body%2C+anthropomorphic+cartoon+cow+mascot+with+human-like+proportions%2C+standing+i+410935+%281%29.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "bear-puppet",
+      "mascot": "bear",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_Full-body%2C+anthropomorphic+cartoon+puppet+bear+mascot+with+human-like+proportions%2C+st+556757.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "koala-handstand-1",
+      "mascot": "koala",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_Koala+mascot+doing+a+handstand+in+a+dynamic+V-shape+or+T-shape+pose%2C+playful+expressi+397795.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "koala-handstand-2",
+      "mascot": "koala",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/Firefly_Koala+mascot+doing+a+handstand+in+a+dynamic+V-shape+or+T-shape+pose%2C+playful+expressi+505519.jpg",
+      "type": "reference-only"
+    },
+    {
+      "id": "red-panda-3d",
+      "mascot": "red-panda",
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/RED-panda-3D.png",
+      "type": "reference-only"
+    },
+    {
+      "id": "style-ref-1",
+      "mascot": null,
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/IMG_4772-1.PNG",
+      "type": "reference-only"
+    },
+    {
+      "id": "style-ref-2",
+      "mascot": null,
+      "url": "https://kibocyber.s3.eu-west-3.amazonaws.com/IMG_4773.PNG",
+      "type": "reference-only"
+    }
+  ]
+}

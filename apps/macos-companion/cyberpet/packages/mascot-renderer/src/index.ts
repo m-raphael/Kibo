@@ -168,8 +168,10 @@ function spawnOrbParticles(orb: HTMLElement, state: MascotState): void {
 }
 
 // ---------------------------------------------------------------------------
-// 3D mascot renderer (animal theme)
+// 3D mascot renderer — Mi Bunny system
 // ---------------------------------------------------------------------------
 
 export { buildMascot3d } from './3d/index.js'
 export type { ThreeMascotHandle } from './3d/index.js'
+export { MASCOT_LIST } from './3d/mascots/index.js'
+export type { MascotId, MascotMeta } from './3d/mascots/index.js'

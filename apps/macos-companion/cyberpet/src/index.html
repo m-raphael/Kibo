@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div id="mascot-card" data-tauri-drag-region data-theme="animal">
+  <div id="mascot-card" data-tauri-drag-region data-theme="xiaomi">
 
     <button id="settings-btn" aria-label="Settings" tabindex="0">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden="true">
@@ -19,6 +19,10 @@
     <div id="tracker-dot" class="tracker-dot inactive" aria-label="Tracker status"></div>
     <div id="mascot-face" aria-label="Mascot">◕‿◕</div>
     <div id="mascot-state" aria-live="polite">idle</div>
+
+    <div id="mascot-selector" role="group" aria-label="Choose mascot">
+      <!-- Pills injected by cyberpet-main.ts -->
+    </div>
   </div>
 
   <!-- Settings + Debug overlay -->
