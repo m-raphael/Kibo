@@ -6,6 +6,27 @@ import type { FacialProfile, AnimalType } from '@cyberpet/mascot-core'
 
 export type { AnimalType }
 
+// ---------------------------------------------------------------------------
+// Species — the 8 mascot identifiers used in assignment
+// ---------------------------------------------------------------------------
+
+export type AssignedSpecies =
+  | 'cat' | 'gibbon' | 'rabbit' | 'pelican'
+  | 'cow' | 'bear'   | 'koala'  | 'red-panda'
+
+// ---------------------------------------------------------------------------
+// Assignment result — Task 9
+// ---------------------------------------------------------------------------
+
+export interface AssignmentResult {
+  species:   AssignedSpecies
+  label:     string
+  emoji:     string
+  score:     number     // 0–1 normalized confidence
+  reasons:   string[]  // human-readable sentences explaining the match
+  runnerUp?: { species: AssignedSpecies; label: string; score: number }
+}
+
 export interface Trait {
   id:         string   // slug, stable identifier
   label:      string   // human-readable display name
@@ -66,6 +87,118 @@ export function inferTraits(profile: FacialProfile): Trait[] {
   return traits
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 6)
+}
+
+// ---------------------------------------------------------------------------
+// Task 9: Rule engine — maps approved Trait[] → AssignmentResult
+// ---------------------------------------------------------------------------
+
+interface SpeciesRule {
+  species:    AssignedSpecies
+  label:      string
+  emoji:      string
+  affinities: Record<string, number>  // trait id → weight 0–1
+  tagline:    string                  // used in reason sentences
+}
+
+const SPECIES_RULES: SpeciesRule[] = [
+  {
+    species: 'cat', label: 'Cat', emoji: '🐱',
+    tagline: 'calm and self-contained',
+    affinities: { reserved: 0.95, quiet: 0.90, steady: 0.80, calm: 0.85, relaxed: 0.60, observant: 0.65 },
+  },
+  {
+    species: 'gibbon', label: 'Gibbon', emoji: '🐒',
+    tagline: 'expressive and energetic',
+    affinities: { expressive: 0.95, animated: 0.95, talkative: 0.85, cheerful: 0.80, engaged: 0.65, alert: 0.50 },
+  },
+  {
+    species: 'rabbit', label: 'Rabbit', emoji: '🐰',
+    tagline: 'quick and attentive',
+    affinities: { alert: 0.95, observant: 0.85, engaged: 0.75, animated: 0.60, quiet: 0.55, steady: 0.50 },
+  },
+  {
+    species: 'pelican', label: 'Pelican', emoji: '🦤',
+    tagline: 'sociable and vocal',
+    affinities: { talkative: 0.90, engaged: 0.85, expressive: 0.75, cheerful: 0.65, animated: 0.60 },
+  },
+  {
+    species: 'cow', label: 'Cow', emoji: '🐄',
+    tagline: 'grounded and easy-going',
+    affinities: { steady: 0.90, relaxed: 0.85, engaged: 0.70, quiet: 0.65, 'laid-back': 0.70 },
+  },
+  {
+    species: 'bear', label: 'Bear', emoji: '🐻',
+    tagline: 'warm and unhurried',
+    affinities: { 'laid-back': 0.95, relaxed: 0.90, steady: 0.75, quiet: 0.70, reserved: 0.50 },
+  },
+  {
+    species: 'koala', label: 'Koala', emoji: '🐨',
+    tagline: 'peaceful and deliberate',
+    affinities: { relaxed: 0.95, 'laid-back': 0.90, steady: 0.80, quiet: 0.75, reserved: 0.55 },
+  },
+  {
+    species: 'red-panda', label: 'Red Panda', emoji: '🦊',
+    tagline: 'playful and clever',
+    affinities: { cheerful: 0.90, animated: 0.85, expressive: 0.80, alert: 0.70, engaged: 0.65 },
+  },
+]
+
+/** Map approved traits to a mascot species with reasons. Falls back to 'cat'. */
+export function assignFromTraits(traits: Trait[]): AssignmentResult {
+  if (traits.length === 0) {
+    return { species: 'cat', label: 'Cat', emoji: '🐱', score: 0, reasons: ['No traits selected — defaulting to cat.'] }
+  }
+
+  // Score each species: weighted sum of (trait.confidence × affinity)
+  const scored = SPECIES_RULES.map(rule => {
+    let total = 0
+    let maxPossible = 0
+    const contributions: Array<{ trait: Trait; weight: number; contrib: number }> = []
+
+    for (const [traitId, weight] of Object.entries(rule.affinities)) {
+      maxPossible += weight
+      const trait = traits.find(t => t.id === traitId)
+      if (trait) {
+        const contrib = trait.confidence * weight
+        total += contrib
+        contributions.push({ trait, weight, contrib })
+      }
+    }
+
+    contributions.sort((a, b) => b.contrib - a.contrib)
+    return { rule, score: maxPossible > 0 ? total / maxPossible : 0, contributions }
+  })
+
+  scored.sort((a, b) => b.score - a.score)
+  const winner   = scored[0]
+  const runnerUp = scored[1]
+
+  // Build human-readable reasons from top 3 contributing traits
+  const topTraits = winner.contributions.slice(0, 3)
+  const reasons: string[] = []
+
+  if (topTraits.length > 0) {
+    const traitLabels = topTraits.map(c => c.trait.label.toLowerCase())
+    reasons.push(`You come across as ${winner.rule.tagline}.`)
+    reasons.push(`Traits like ${traitLabels.join(', ')} matched this profile strongly.`)
+  }
+  if (winner.score < 0.40) {
+    reasons.push('Match confidence is low — try scanning again for a better result.')
+  }
+
+  return {
+    species:  winner.rule.species,
+    label:    winner.rule.label,
+    emoji:    winner.rule.emoji,
+    score:    Math.round(winner.score * 100) / 100,
+    reasons,
+    runnerUp: {
+      species: runnerUp.rule.species,
+      label:   runnerUp.rule.label,
+      score:   Math.round(runnerUp.score * 100) / 100,
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------

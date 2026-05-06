@@ -1,7 +1,9 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen }  from '@tauri-apps/api/event'
-import { MOCK_PROFILE } from '@cyberpet/mascot-profile'
+import { MOCK_PROFILE, assignFromTraits } from '@cyberpet/mascot-profile'
+import type { AssignedSpecies } from '@cyberpet/mascot-profile'
 import { buildTraitReview } from './components/trait-review.js'
+import { buildAssignmentResult } from './components/assignment-result.js'
 import {
   type MascotState,
   type TrackerFrame,
@@ -290,16 +292,38 @@ function toggleDebug() {
 // ---------------------------------------------------------------------------
 
 function initTraitReview() {
-  const review = buildTraitReview(MOCK_PROFILE)
-  review.onSave((traits, animal) => {
-    console.info('[trait-review] saved', { animal, traits })
-    // Future: send to Rust backend via invoke('save_traits', { animal, traits })
+  const review     = buildTraitReview(MOCK_PROFILE)
+  const assignment = buildAssignmentResult()
+
+  // Task 9 + 10: on save → run rule engine → show result panel
+  review.onSave((traits, _animal) => {
+    const result = assignFromTraits(traits)
+    assignment.show(result, traits)
   })
+
+  // Task 10: confirm → switch active mascot
+  assignment.onConfirm((species: AssignedSpecies) => {
+    if (mascot3d) mascot3d.setMascot(species)
+    localStorage.setItem('cyberpet:mascot-id', species)
+    // Sync selector pill active state
+    mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
+      const active = p.dataset.id === species
+      p.dataset.active = String(active)
+      p.setAttribute('aria-pressed', String(active))
+    })
+  })
+
+  // Task 10: regenerate → re-open trait review
+  assignment.onRegenerate(() => {
+    ;(review.element as unknown as { show: () => void }).show()
+  })
+
   mascotCard.appendChild(review.element)
+  mascotCard.appendChild(assignment.element)
 
   traitReviewBtn.addEventListener('click', () => {
     closeSettings()
-    ;(review.element as HTMLElement & { show: () => void }).show()
+    ;(review.element as unknown as { show: () => void }).show()
   })
 }
 
