@@ -5,6 +5,7 @@
 export type MascotState = 'idle' | 'attentive' | 'listening' | 'speaking' | 'happy' | 'tired'
 
 export type { FacialProfile, AnimalType } from './profile.js'
+export { ScanAccumulator, SCAN_DURATION_MS, MIN_FACE_FRAMES } from './scanner.js'
 
 export interface TrackerFrame {
   face_detected: boolean

@@ -953,3 +953,94 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
 #mascot-card[data-theme="xiaomi"] #mascot-state {
   margin-bottom: 0;
 }
+
+/* ==========================================================================
+   SCAN OVERLAY
+   ========================================================================== */
+
+#scan-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(10, 10, 14, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: inherit;
+  /* slide-in */
+  opacity: 1;
+  transition: opacity 0.22s ease;
+}
+
+#scan-overlay.hidden {
+  display: none;
+}
+
+/* SVG progress ring */
+#scan-ring-svg {
+  position: relative;
+}
+
+.scan-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 4;
+}
+
+.scan-ring-fill {
+  fill: none;
+  stroke: #FF6900;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 239;        /* 2π × 38 */
+  stroke-dashoffset: 239;       /* fully hidden — set by JS */
+  transform: rotate(-90deg);
+  transform-origin: 44px 44px;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+/* Face-detected dot sits over the ring */
+.scan-face-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.20);
+  margin-top: -66px;           /* centre inside the ring */
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.scan-face-dot.detected {
+  background: #30D158;
+  box-shadow: 0 0 8px rgba(48, 209, 88, 0.70);
+}
+
+.scan-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.60);
+  letter-spacing: 0.02em;
+}
+
+.scan-cancel {
+  margin-top: 4px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+  padding: 5px 18px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.scan-cancel:hover {
+  border-color: rgba(255, 69, 58, 0.40);
+  color: #FF453A;
+}

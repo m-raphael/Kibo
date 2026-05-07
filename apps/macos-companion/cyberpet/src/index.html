@@ -27,6 +27,17 @@
     </div>
   </div>
 
+  <!-- Scan progress overlay -->
+  <div id="scan-overlay" class="hidden" role="status" aria-label="Face scan in progress">
+    <svg id="scan-ring-svg" width="88" height="88" viewBox="0 0 88 88" aria-hidden="true">
+      <circle cx="44" cy="44" r="38" class="scan-ring-track"/>
+      <circle id="scan-ring-fill" cx="44" cy="44" r="38" class="scan-ring-fill"/>
+    </svg>
+    <div id="scan-face-dot" class="scan-face-dot" aria-hidden="true"></div>
+    <p id="scan-label" class="scan-label">Scanning…</p>
+    <button id="scan-cancel" class="scan-cancel" aria-label="Cancel scan">Cancel</button>
+  </div>
+
   <!-- Settings + Debug overlay -->
   <div id="settings-panel" class="hidden" role="dialog" aria-label="Settings">
     <!-- Xiaomi-style drag handle -->

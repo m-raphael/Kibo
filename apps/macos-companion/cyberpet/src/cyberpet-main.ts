@@ -1,15 +1,18 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen }  from '@tauri-apps/api/event'
-import { MOCK_PROFILE, assignMascot } from '@cyberpet/mascot-profile'
-import type { AssignedSpecies, LlmConfig } from '@cyberpet/mascot-profile'
+import { inferTraits, assignMascot } from '@cyberpet/mascot-profile'
+import type { AssignedSpecies, LlmConfig, MascotProfile } from '@cyberpet/mascot-profile'
 import { buildTraitReview } from './components/trait-review.js'
 import { buildAssignmentResult } from './components/assignment-result.js'
 import {
   type MascotState,
   type TrackerFrame,
+  type FacialProfile,
   mapTrackerToState,
   makeHysteresis,
   proposeState,
+  ScanAccumulator,
+  SCAN_DURATION_MS,
 } from '@cyberpet/mascot-core'
 import {
   buildMascotSvg, updateMascotState, setPupilOffset,
@@ -25,7 +28,7 @@ import type { ThreeMascotHandle, MascotId } from '@cyberpet/mascot-renderer'
 type PermissionState = 'notDetermined' | 'authorized' | 'denied' | 'restricted'
 type Theme = 'apple' | 'xiaomi' | 'animal'
 
-interface MascotProfile {
+interface TauriMascotState {
   name:       string
   last_state: MascotState
 }
@@ -68,6 +71,12 @@ const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElemen
 const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
 const aiSaveBtn     = document.getElementById('ai-save')!
 const aiClearBtn    = document.getElementById('ai-clear')!
+// Scan overlay
+const scanOverlay   = document.getElementById('scan-overlay')!
+const scanRingFill  = document.getElementById('scan-ring-fill')!
+const scanFaceDot   = document.getElementById('scan-face-dot')!
+const scanLabel     = document.getElementById('scan-label')!
+const scanCancelBtn = document.getElementById('scan-cancel')!
 
 // ---------------------------------------------------------------------------
 // Theme detection
@@ -158,6 +167,71 @@ function proposeMascotState(next: MascotState) {
 }
 
 // ---------------------------------------------------------------------------
+// Scan — real FacialProfile accumulation
+// ---------------------------------------------------------------------------
+
+const RING_CIRCUMFERENCE = 2 * Math.PI * 38  // matches r=38 in SVG
+
+const accumulator = new ScanAccumulator()
+let scanning = false
+let scanRafId = 0
+let onScanComplete: ((profile: FacialProfile) => void) | null = null
+
+function startScan(onComplete: (profile: FacialProfile) => void) {
+  if (scanning) return
+  scanning = true
+  onScanComplete = onComplete
+  accumulator.reset()
+
+  scanOverlay.classList.remove('hidden')
+  scanLabel.textContent = 'Look at the camera…'
+
+  function tick() {
+    const pct = accumulator.progress()
+    const offset = RING_CIRCUMFERENCE * (1 - pct)
+    scanRingFill.style.strokeDashoffset = String(offset)
+
+    const secsLeft = Math.ceil((SCAN_DURATION_MS / 1000) * (1 - pct))
+    scanLabel.textContent = accumulator.done
+      ? 'Done!'
+      : pct < 0.05
+        ? 'Look at the camera…'
+        : `Scanning… ${secsLeft}s left`
+
+    if (accumulator.done) {
+      finishScan()
+      return
+    }
+    scanRafId = requestAnimationFrame(tick)
+  }
+
+  scanRafId = requestAnimationFrame(tick)
+}
+
+function finishScan() {
+  scanning = false
+  cancelAnimationFrame(scanRafId)
+  const profile = accumulator.result()
+
+  // brief "Done" flash then hide
+  setTimeout(() => {
+    scanOverlay.classList.add('hidden')
+    scanRingFill.style.strokeDashoffset = String(RING_CIRCUMFERENCE)
+    onScanComplete?.(profile)
+    onScanComplete = null
+  }, 600)
+}
+
+function cancelScan() {
+  scanning = false
+  accumulator.stop()
+  cancelAnimationFrame(scanRafId)
+  scanOverlay.classList.add('hidden')
+  scanRingFill.style.strokeDashoffset = String(RING_CIRCUMFERENCE)
+  onScanComplete = null
+}
+
+// ---------------------------------------------------------------------------
 // Settings panel
 // ---------------------------------------------------------------------------
 
@@ -221,11 +295,18 @@ async function startTracker() {
     setTrackerDot('inactive')
 
     await listen<TrackerFrame>('tracker:frame', (event) => {
-      const f = event.payload
+      const f     = event.payload
+      const state = mapTrackerToState(f)
       setTrackerDot(f.face_detected ? 'active' : 'inactive')
-      proposeMascotState(mapTrackerToState(f))
+      proposeMascotState(state)
       updatePupils(f)
       updateDebug(f)
+
+      // Feed scan accumulator when a scan is in progress
+      if (scanning) {
+        accumulator.push(f, state)
+        scanFaceDot.classList.toggle('detected', f.face_detected)
+      }
     })
 
     await listen<string>('tracker:error', (event) => {
@@ -354,22 +435,37 @@ function initAiSection() {
 // ---------------------------------------------------------------------------
 
 function initTraitReview() {
-  const review     = buildTraitReview(MOCK_PROFILE)
+  // review/assignment panels are created once; profile is injected after scan
+  let reviewHandle = buildTraitReview({ animal: 'cat', traits: [], scannedAt: 0 })
   const assignment = buildAssignmentResult()
 
-  // Tasks 9/10 + 11/12: try LLM first, fall back to local rules
-  review.onSave((traits, _animal) => {
-    const config = loadLlmConfig()
-    assignMascot(traits, config).then(result => {
-      assignment.show(result, traits)
-    })
-  })
+  mascotCard.appendChild(reviewHandle.element)
+  mascotCard.appendChild(assignment.element)
 
-  // Task 10: confirm → switch active mascot
+  function openReviewWith(profile: MascotProfile) {
+    // Rebuild chip list with the new profile's traits
+    reviewHandle.destroy()
+    reviewHandle = buildTraitReview(profile)
+
+    // Rewire save callback
+    reviewHandle.onSave((traits, _animal) => {
+      const config = loadLlmConfig()
+      assignMascot(traits, config).then(result => {
+        assignment.show(result, traits)
+      })
+    })
+
+    // Re-attach regenerate → rescan
+    assignment.onRegenerate(() => startScanFlow())
+
+    mascotCard.insertBefore(reviewHandle.element, assignment.element)
+    ;(reviewHandle.element as unknown as { show: () => void }).show()
+  }
+
+  // Wire assignment confirm — switch live mascot
   assignment.onConfirm((species: AssignedSpecies) => {
     if (mascot3d) mascot3d.setMascot(species)
     localStorage.setItem('cyberpet:mascot-id', species)
-    // Sync selector pill active state
     mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
       const active = p.dataset.id === species
       p.dataset.active = String(active)
@@ -377,18 +473,22 @@ function initTraitReview() {
     })
   })
 
-  // Task 10: regenerate → re-open trait review
-  assignment.onRegenerate(() => {
-    ;(review.element as unknown as { show: () => void }).show()
-  })
+  assignment.onRegenerate(() => startScanFlow())
 
-  mascotCard.appendChild(review.element)
-  mascotCard.appendChild(assignment.element)
-
-  traitReviewBtn.addEventListener('click', () => {
+  function startScanFlow() {
     closeSettings()
-    ;(review.element as unknown as { show: () => void }).show()
-  })
+    startScan((facialProfile) => {
+      const traits  = inferTraits(facialProfile)
+      const profile: MascotProfile = { animal: 'cat', traits, scannedAt: Date.now() }
+      openReviewWith(profile)
+    })
+  }
+
+  // Cancel button
+  scanCancelBtn.addEventListener('click', cancelScan)
+
+  // Settings button → trigger scan
+  traitReviewBtn.addEventListener('click', startScanFlow)
 }
 
 async function init() {
@@ -414,7 +514,7 @@ async function init() {
   })
 
   try {
-    const profile = await invoke<MascotProfile>('get_mascot_state')
+    const profile = await invoke<TauriMascotState>('get_mascot_state')
     applyMascotState(profile.last_state)
   } catch {
     applyMascotState('idle')
