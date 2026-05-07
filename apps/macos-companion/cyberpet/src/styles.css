@@ -1150,3 +1150,116 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
 
 .onboard-skip:hover { color: rgba(255, 255, 255, 0.55); }
 .onboard-skip:focus-visible { outline: 2px solid #FF6900; border-radius: 4px; }
+
+/* ==========================================================================
+   ACCESSORY PICKER — Task 14
+   ========================================================================== */
+
+#accessory-panel {
+  position: absolute;
+  inset: 0;
+  top: auto;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 14, 22, 0.98);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 28px 28px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: none;
+  z-index: 25;
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.20s ease;
+}
+
+#accessory-panel.open   { transform: translateY(0); opacity: 1; }
+#accessory-panel.hidden { display: none; }
+
+#accessory-panel::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+#accessory-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+}
+
+.accessory-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.80);
+}
+
+#accessory-close {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#accessory-close:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
+#accessory-close:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+#accessory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 8px 14px 22px;
+}
+
+.accessory-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 4px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.10s;
+  font-family: var(--font);
+}
+
+.accessory-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.accessory-item:active { transform: scale(0.94); }
+
+.accessory-item[data-active="true"] {
+  background: rgba(255, 105, 0, 0.14);
+  border-color: rgba(255, 105, 0, 0.45);
+}
+
+.accessory-item:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+.accessory-emoji { font-size: 22px; line-height: 1; }
+
+.accessory-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+  text-align: center;
+  white-space: nowrap;
+}

@@ -5,16 +5,24 @@ import {
   buildMascot,
   type MascotId, type MascotParts, type AnimTargets, TARGET_NEUTRAL,
 } from './mascots/index.js'
+import {
+  buildAccessory,
+  type AccessoryId,
+} from './accessories/index.js'
+
+export type { AccessoryId }
+export { ACCESSORY_LIST } from './accessories/index.js'
 
 // ---------------------------------------------------------------------------
 // Three.js 3D mascot renderer — Mi Bunny mascot system
 // ---------------------------------------------------------------------------
 
 export interface ThreeMascotHandle {
-  element:    HTMLCanvasElement
-  update:     (state?: MascotState, dx?: number, dy?: number, faceDetected?: boolean) => void
-  setMascot:  (id: MascotId) => void
-  dispose:    () => void
+  element:       HTMLCanvasElement
+  update:        (state?: MascotState, dx?: number, dy?: number, faceDetected?: boolean) => void
+  setMascot:     (id: MascotId) => void
+  setAccessory:  (id: AccessoryId | null) => void
+  dispose:       () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +100,15 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
   let mascot: MascotParts     = buildMascot(mascotId)
   handle.group.add(mascot.group)
 
+  let currentAccessoryId: AccessoryId | null = null
+  let accessoryGroup:     THREE.Group | null  = null
+
+  function attachAccessory(id: AccessoryId | null) {
+    if (accessoryGroup) { mascot.head.remove(accessoryGroup); accessoryGroup = null }
+    if (id) { accessoryGroup = buildAccessory(id); mascot.head.add(accessoryGroup) }
+    currentAccessoryId = id
+  }
+
   let tgt: AnimTargets = { ...TARGET_NEUTRAL }
   let cur: AnimTargets = { ...TARGET_NEUTRAL }
 
@@ -167,10 +184,15 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
       mascotId = id
       mascot   = buildMascot(id)
       handle.group.add(mascot.group)
-      // Reset animation state
       cur = { ...TARGET_NEUTRAL }
       tgt = { ...TARGET_NEUTRAL }
       blinkPhase = 0
+      // Re-attach accessory to the new mascot's head
+      if (currentAccessoryId) attachAccessory(currentAccessoryId)
+    },
+
+    setAccessory(id: AccessoryId | null) {
+      attachAccessory(id)
     },
 
     dispose() {

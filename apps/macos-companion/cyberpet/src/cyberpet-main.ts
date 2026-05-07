@@ -17,9 +17,9 @@ import {
 import {
   buildMascotSvg, updateMascotState, setPupilOffset,
   buildMascotOrb, updateOrbState, setOrbEyesVisible, setOrbEyeOffset,
-  buildMascot3d, MASCOT_LIST,
+  buildMascot3d, MASCOT_LIST, ACCESSORY_LIST,
 } from '@cyberpet/mascot-renderer'
-import type { ThreeMascotHandle, MascotId } from '@cyberpet/mascot-renderer'
+import type { ThreeMascotHandle, MascotId, AccessoryId } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,6 +71,11 @@ const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElemen
 const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
 const aiSaveBtn     = document.getElementById('ai-save')!
 const aiClearBtn    = document.getElementById('ai-clear')!
+// Accessory picker
+const accessoryPanel = document.getElementById('accessory-panel')!
+const accessoryClose = document.getElementById('accessory-close')!
+const accessoryGrid  = document.getElementById('accessory-grid')!
+const accessoryBtn   = document.getElementById('accessory-btn')!
 // Onboarding
 const onboarding    = document.getElementById('onboarding')!
 const onboardStart  = document.getElementById('onboard-start')!
@@ -510,10 +515,78 @@ function initTraitReview() {
   traitReviewBtn.addEventListener('click', startScanFlow)
 }
 
+// ---------------------------------------------------------------------------
+// Accessory picker — Task 14
+// ---------------------------------------------------------------------------
+
+const ACCESSORY_STORAGE_KEY = 'cyberpet:accessory-id'
+
+function savedAccessoryId(): AccessoryId | null {
+  return localStorage.getItem(ACCESSORY_STORAGE_KEY) as AccessoryId | null
+}
+
+function openAccessoryPanel() {
+  closeSettings()
+  accessoryPanel.classList.remove('hidden')
+  requestAnimationFrame(() => accessoryPanel.classList.add('open'))
+}
+
+function closeAccessoryPanel() {
+  accessoryPanel.classList.remove('open')
+  accessoryPanel.addEventListener('transitionend', () => accessoryPanel.classList.add('hidden'), { once: true })
+}
+
+function initAccessoryPicker() {
+  const active = savedAccessoryId()
+  if (active && mascot3d) mascot3d.setAccessory(active)
+
+  // Build "None" + 4 accessory items
+  const noneBtn = document.createElement('button')
+  noneBtn.className = 'accessory-item'
+  noneBtn.dataset.id = 'none'
+  noneBtn.dataset.active = String(!active)
+  noneBtn.setAttribute('aria-label', 'No accessory')
+  noneBtn.innerHTML = `<span class="accessory-emoji">✕</span><span class="accessory-label">None</span>`
+  accessoryGrid.appendChild(noneBtn)
+
+  ACCESSORY_LIST.forEach(meta => {
+    const btn = document.createElement('button')
+    btn.className = 'accessory-item'
+    btn.dataset.id = meta.id
+    btn.dataset.active = String(meta.id === active)
+    btn.setAttribute('aria-label', meta.label)
+    btn.innerHTML = `<span class="accessory-emoji">${meta.emoji}</span><span class="accessory-label">${meta.label}</span>`
+    accessoryGrid.appendChild(btn)
+  })
+
+  accessoryGrid.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.accessory-item')
+    if (!btn) return
+    const id = btn.dataset.id as AccessoryId | 'none'
+    const accessoryId = id === 'none' ? null : id
+
+    if (mascot3d) mascot3d.setAccessory(accessoryId)
+    if (accessoryId) localStorage.setItem(ACCESSORY_STORAGE_KEY, accessoryId)
+    else localStorage.removeItem(ACCESSORY_STORAGE_KEY)
+
+    accessoryGrid.querySelectorAll<HTMLButtonElement>('.accessory-item').forEach(b => {
+      b.dataset.active = String(b.dataset.id === id)
+    })
+  })
+
+  accessoryClose.addEventListener('click', closeAccessoryPanel)
+  accessoryBtn.addEventListener('click', openAccessoryPanel)
+
+  accessoryPanel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAccessoryPanel()
+  })
+}
+
 async function init() {
   initMascotRenderer()
   initTraitReview()
   initAiSection()
+  initAccessoryPicker()
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)
   debugToggle.addEventListener('click', toggleDebug)
