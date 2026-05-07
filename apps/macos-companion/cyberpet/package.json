@@ -39,7 +39,9 @@
     "docker:setup": "docker compose build",
     "docker:dev": "docker compose up --build",
     "docker:dev:bg": "docker compose up --build -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "assets:import": "node scripts/import-mascot-asset.mjs",
+    "assets:gallery": "node scripts/asset-gallery.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
