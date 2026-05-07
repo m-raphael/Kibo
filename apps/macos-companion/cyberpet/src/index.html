@@ -90,6 +90,37 @@
         </button>
       </div>
 
+      <div class="divider"></div>
+
+      <!-- AI Assignment — Task 11/12 -->
+      <div id="ai-section">
+        <button id="ai-toggle" class="ghost-btn">
+          <span id="ai-toggle-label">AI assignment</span>
+          <span id="ai-badge" class="hidden"></span>
+          <svg id="ai-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div id="ai-config-panel" class="hidden">
+          <div class="ai-field">
+            <label class="ai-label" for="ai-provider">Provider</label>
+            <select id="ai-provider" class="ai-select">
+              <option value="nvidia-nim">NVIDIA NIM</option>
+              <option value="huggingface">HuggingFace</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <label class="ai-label" for="ai-key">API Key</label>
+            <input id="ai-key" type="password" class="ai-input" placeholder="Paste key here" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="ai-actions">
+            <button id="ai-save" class="primary-btn ai-save-btn">Save</button>
+            <button id="ai-clear" class="ghost-btn ai-clear-btn">Clear</button>
+          </div>
+          <p class="ai-hint">Key is stored locally only. Used for mascot assignment when you save traits.</p>
+        </div>
+      </div>
+
       <p class="privacy-note">
         All processing happens locally. No video is stored or transmitted.
       </p>

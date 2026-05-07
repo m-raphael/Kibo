@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen }  from '@tauri-apps/api/event'
-import { MOCK_PROFILE, assignFromTraits } from '@cyberpet/mascot-profile'
-import type { AssignedSpecies } from '@cyberpet/mascot-profile'
+import { MOCK_PROFILE, assignMascot } from '@cyberpet/mascot-profile'
+import type { AssignedSpecies, LlmConfig } from '@cyberpet/mascot-profile'
 import { buildTraitReview } from './components/trait-review.js'
 import { buildAssignmentResult } from './components/assignment-result.js'
 import {
@@ -58,6 +58,16 @@ const dPitch = document.getElementById('d-pitch')!
 const dBlink = document.getElementById('d-blink')!
 const dSmile = document.getElementById('d-smile')!
 const dMouth = document.getElementById('d-mouth')!
+// AI assignment
+const aiToggle      = document.getElementById('ai-toggle')!
+const aiChevron     = document.getElementById('ai-chevron')!
+const aiToggleLabel = document.getElementById('ai-toggle-label')!
+const aiBadge       = document.getElementById('ai-badge')!
+const aiConfigPanel = document.getElementById('ai-config-panel')!
+const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElement
+const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
+const aiSaveBtn     = document.getElementById('ai-save')!
+const aiClearBtn    = document.getElementById('ai-clear')!
 
 // ---------------------------------------------------------------------------
 // Theme detection
@@ -288,6 +298,58 @@ function toggleDebug() {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// AI config — Tasks 11/12
+// ---------------------------------------------------------------------------
+
+const AI_KEY_STORE      = 'cyberpet:ai-key'
+const AI_PROVIDER_STORE = 'cyberpet:ai-provider'
+
+function loadLlmConfig(): LlmConfig | null {
+  const key      = localStorage.getItem(AI_KEY_STORE)
+  const provider = (localStorage.getItem(AI_PROVIDER_STORE) ?? 'nvidia-nim') as LlmConfig['provider']
+  if (!key) return null
+  return { provider, apiKey: key }
+}
+
+let aiPanelOpen = false
+
+function initAiSection() {
+  const saved = loadLlmConfig()
+  if (saved) {
+    aiProvider.value = saved.provider
+    aiBadge.textContent = 'ON'
+    aiBadge.classList.remove('hidden')
+  }
+
+  aiToggle.addEventListener('click', () => {
+    aiPanelOpen = !aiPanelOpen
+    aiConfigPanel.classList.toggle('hidden', !aiPanelOpen)
+    aiChevron.classList.toggle('open', aiPanelOpen)
+    if (aiPanelOpen) aiKeyInput.value = ''  // clear mask when opening
+  })
+
+  aiSaveBtn.addEventListener('click', () => {
+    const key = aiKeyInput.value.trim()
+    if (!key) return
+    localStorage.setItem(AI_KEY_STORE, key)
+    localStorage.setItem(AI_PROVIDER_STORE, aiProvider.value)
+    aiBadge.textContent = 'ON'
+    aiBadge.classList.remove('hidden')
+    aiKeyInput.value = ''
+    aiPanelOpen = false
+    aiConfigPanel.classList.add('hidden')
+    aiChevron.classList.remove('open')
+  })
+
+  aiClearBtn.addEventListener('click', () => {
+    localStorage.removeItem(AI_KEY_STORE)
+    localStorage.removeItem(AI_PROVIDER_STORE)
+    aiKeyInput.value = ''
+    aiBadge.classList.add('hidden')
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Trait review
 // ---------------------------------------------------------------------------
 
@@ -295,10 +357,12 @@ function initTraitReview() {
   const review     = buildTraitReview(MOCK_PROFILE)
   const assignment = buildAssignmentResult()
 
-  // Task 9 + 10: on save → run rule engine → show result panel
+  // Tasks 9/10 + 11/12: try LLM first, fall back to local rules
   review.onSave((traits, _animal) => {
-    const result = assignFromTraits(traits)
-    assignment.show(result, traits)
+    const config = loadLlmConfig()
+    assignMascot(traits, config).then(result => {
+      assignment.show(result, traits)
+    })
   })
 
   // Task 10: confirm → switch active mascot
@@ -330,6 +394,7 @@ function initTraitReview() {
 async function init() {
   initMascotRenderer()
   initTraitReview()
+  initAiSection()
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)
   debugToggle.addEventListener('click', toggleDebug)

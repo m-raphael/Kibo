@@ -1,4 +1,6 @@
 import type { FacialProfile, AnimalType } from '@cyberpet/mascot-core'
+import { assignFromTraitsLLM } from './llm-adapter.js'
+export type { LlmConfig } from './llm-adapter.js'
 
 // ---------------------------------------------------------------------------
 // MascotProfile — shared schema across TS, Rust, and Python
@@ -199,6 +201,36 @@ export function assignFromTraits(traits: Trait[]): AssignmentResult {
       score:   Math.round(runnerUp.score * 100) / 100,
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// Task 12: assignMascot — tries LLM, falls back to local rules
+// ---------------------------------------------------------------------------
+
+export type AssignSource = 'llm' | 'local'
+
+export interface AssignmentResultWithSource extends AssignmentResult {
+  source: AssignSource
+}
+
+/**
+ * Assign a mascot species from approved traits.
+ * If a valid LlmConfig is provided, attempts the LLM endpoint first.
+ * Falls back to deterministic local rules on any failure.
+ */
+export async function assignMascot(
+  traits: Trait[],
+  config?: import('./llm-adapter.js').LlmConfig | null,
+): Promise<AssignmentResultWithSource> {
+  if (config?.apiKey) {
+    try {
+      const result = await assignFromTraitsLLM(traits, config)
+      return { ...result, source: 'llm' }
+    } catch (err) {
+      console.warn('[CyberPet] LLM assignment failed — using local rules.', err)
+    }
+  }
+  return { ...assignFromTraits(traits), source: 'local' }
 }
 
 // ---------------------------------------------------------------------------
