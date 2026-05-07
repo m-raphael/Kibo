@@ -7,7 +7,7 @@ const CHEST  = 0xF0EDEA
 const ORANGE = 0xE8760A
 function mat(c: number, r = 0.90) { return new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: 0 }) }
 
-export function buildPlaceholderPelican(): MascotParts {
+export function buildMiBunnyPelican(): MascotParts {
   const group = new THREE.Group()
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 18), mat(DARK))
@@ -65,3 +65,5 @@ export function buildPlaceholderPelican(): MascotParts {
 
   return { group, head, body, eyeL, eyeR, extras, apply }
 }
+
+export { buildMiBunnyPelican as buildPlaceholderPelican }

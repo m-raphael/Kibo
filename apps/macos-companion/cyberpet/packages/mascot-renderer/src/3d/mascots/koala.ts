@@ -8,10 +8,10 @@ import {
 // Mi Bunny Koala — cool grey, signature oversized fluffy ears, broad nose
 // ---------------------------------------------------------------------------
 
-const BODY    = 0x72727A   // cool mid-grey
-const EAR_OUT = 0x8A8A92   // slightly lighter ear
-const EAR_IN  = 0xC8C8D4   // pale lavender inner ear
-const NOSE    = 0x222226   // near-black broad nose
+const BODY    = 0x9AABBF   // blue-grey (matches reference koala1/2)
+const EAR_OUT = 0xB0C0D2   // lighter blue-grey ear
+const EAR_IN  = 0xE0E8EE   // pale blue-white inner ear fringe
+const NOSE    = 0x505A68   // slate-grey broad nose (matches reference)
 const CREAM   = 0xF0EDE8   // face highlight area
 const EYE_COL = 0x18181E
 
