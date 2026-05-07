@@ -1378,3 +1378,156 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
   color: rgba(255, 255, 255, 0.38);
   letter-spacing: 0.02em;
 }
+
+/* ==========================================================================
+   MASCOT BUILDER — Task 16
+   ========================================================================== */
+
+#builder-panel {
+  position: absolute;
+  inset: 0;
+  top: auto;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 12, 20, 0.98);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 28px 28px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: none;
+  max-height: 88%;
+  z-index: 28;
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+}
+
+#builder-panel.open   { transform: translateY(0); opacity: 1; }
+#builder-panel.hidden { display: none; }
+
+#builder-panel::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 6px;
+  flex-shrink: 0;
+}
+
+.builder-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.01em;
+}
+
+#builder-close {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#builder-close:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
+#builder-close:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+.builder-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 4px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.builder-body::-webkit-scrollbar { display: none; }
+
+.builder-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+  margin: 12px 0 6px;
+}
+
+/* Mascot row — horizontal scroll strip */
+.builder-mascot-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.builder-mascot-row::-webkit-scrollbar { display: none; }
+
+.builder-mascot-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 8px 10px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.12s, border-color 0.12s;
+}
+.builder-mascot-pill:hover { background: rgba(255,255,255,0.08); }
+.builder-mascot-pill[data-active="true"] {
+  background: rgba(255,105,0,0.14);
+  border-color: rgba(255,105,0,0.45);
+}
+.builder-mascot-pill:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+.builder-mascot-emoji { font-size: 20px; line-height: 1; }
+.builder-mascot-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.42);
+  white-space: nowrap;
+}
+
+/* Palette row — single scrollable row */
+.builder-palette-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.builder-palette-row::-webkit-scrollbar { display: none; }
+
+/* Re-use .palette-swatch + .swatch-circle + .swatch-label from T15 */
+
+/* Accessory row — single scrollable row */
+.builder-accessory-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.builder-accessory-row::-webkit-scrollbar { display: none; }
+
+/* Re-use .accessory-item + .accessory-emoji + .accessory-label from T14 */
+.builder-accessory-row .accessory-item { flex-shrink: 0; }

@@ -45,6 +45,27 @@
     <button id="onboard-skip" class="onboard-skip">Not now</button>
   </div>
 
+  <!-- Mascot Builder — Task 16: unified live-preview panel -->
+  <div id="builder-panel" class="hidden" role="dialog" aria-label="Mascot builder" aria-modal="true">
+    <div class="panel-handle"></div>
+    <div class="builder-header">
+      <span class="builder-title">Customise</span>
+      <button id="builder-close" aria-label="Close builder">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+          <path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="builder-body">
+      <p class="builder-section-label">Mascot</p>
+      <div id="builder-mascot-row" role="group" aria-label="Choose mascot" class="builder-mascot-row"></div>
+      <p class="builder-section-label">Colour</p>
+      <div id="builder-palette-row" role="group" aria-label="Choose colour" class="builder-palette-row"></div>
+      <p class="builder-section-label">Accessories</p>
+      <div id="builder-accessory-row" role="group" aria-label="Choose accessory" class="builder-accessory-row"></div>
+    </div>
+  </div>
+
   <!-- Palette picker — Task 15 -->
   <div id="palette-panel" class="hidden" role="dialog" aria-label="Choose colour" aria-modal="true">
     <div class="panel-handle"></div>
@@ -138,6 +159,17 @@
           <div class="debug-row"><span>smile</span> <span id="d-smile">—</span></div>
           <div class="debug-row"><span>mouth</span> <span id="d-mouth">—</span></div>
         </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="setting-section">
+        <button id="builder-btn" class="ghost-btn">
+          <span>Customise mascot</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       <div class="divider"></div>

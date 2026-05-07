@@ -71,6 +71,13 @@ const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElemen
 const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
 const aiSaveBtn     = document.getElementById('ai-save')!
 const aiClearBtn    = document.getElementById('ai-clear')!
+// Builder panel
+const builderPanel      = document.getElementById('builder-panel')!
+const builderClose      = document.getElementById('builder-close')!
+const builderBtn        = document.getElementById('builder-btn')!
+const builderMascotRow  = document.getElementById('builder-mascot-row')!
+const builderPaletteRow = document.getElementById('builder-palette-row')!
+const builderAccessRow  = document.getElementById('builder-accessory-row')!
 // Palette picker
 const palettePanel    = document.getElementById('palette-panel')!
 const paletteClose    = document.getElementById('palette-close')!
@@ -521,6 +528,121 @@ function initTraitReview() {
 }
 
 // ---------------------------------------------------------------------------
+// Builder panel — Task 16: unified live-preview customiser
+// ---------------------------------------------------------------------------
+
+function openBuilder() {
+  closeSettings()
+  builderPanel.classList.remove('hidden')
+  requestAnimationFrame(() => builderPanel.classList.add('open'))
+}
+
+function closeBuilder() {
+  builderPanel.classList.remove('open')
+  builderPanel.addEventListener('transitionend', () => builderPanel.classList.add('hidden'), { once: true })
+}
+
+function syncBuilderActive(row: HTMLElement, activeId: string) {
+  row.querySelectorAll<HTMLButtonElement>('[data-id]').forEach(b => {
+    const on = b.dataset.id === activeId
+    b.dataset.active = String(on)
+    b.setAttribute('aria-pressed', String(on))
+  })
+}
+
+function initBuilderPanel() {
+  // --- Mascot row ---
+  MASCOT_LIST.forEach(meta => {
+    const btn = document.createElement('button')
+    btn.className = 'builder-mascot-pill'
+    btn.dataset.id = meta.id
+    btn.dataset.active = String(meta.id === savedMascotId())
+    btn.setAttribute('aria-label', meta.label)
+    btn.setAttribute('aria-pressed', String(meta.id === savedMascotId()))
+    btn.disabled = !meta.available
+    btn.innerHTML = `<span class="builder-mascot-emoji">${meta.emoji}</span><span class="builder-mascot-label">${meta.label}</span>`
+    if (meta.available) {
+      btn.addEventListener('click', () => {
+        if (!mascot3d) return
+        mascot3d.setMascot(meta.id as MascotId)
+        localStorage.setItem(MASCOT_STORAGE_KEY, meta.id)
+        syncBuilderActive(builderMascotRow, meta.id)
+        // Keep top-level pill selector in sync
+        mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
+          const a = p.dataset.id === meta.id
+          p.dataset.active = String(a); p.setAttribute('aria-pressed', String(a))
+        })
+      })
+    }
+    builderMascotRow.appendChild(btn)
+  })
+
+  // --- Palette row ---
+  const activePalette = savedPaletteId()
+  PALETTE_LIST.forEach(palette => {
+    const btn = document.createElement('button')
+    btn.className = 'palette-swatch'
+    btn.dataset.id = palette.id
+    btn.dataset.active = String(palette.id === activePalette)
+    btn.setAttribute('aria-label', palette.label)
+    btn.setAttribute('aria-pressed', String(palette.id === activePalette))
+    btn.innerHTML = `<span class="swatch-circle" style="background:#${palette.swatch.toString(16).padStart(6,'0')}"></span><span class="swatch-label">${palette.label}</span>`
+    btn.addEventListener('click', () => {
+      if (!mascot3d) return
+      mascot3d.setPalette(palette.id)
+      localStorage.setItem(PALETTE_STORAGE_KEY, palette.id)
+      syncBuilderActive(builderPaletteRow, palette.id)
+      // Keep standalone palette picker in sync
+      paletteSwatches.querySelectorAll<HTMLButtonElement>('.palette-swatch').forEach(b => {
+        const a = b.dataset.id === palette.id
+        b.dataset.active = String(a); b.setAttribute('aria-pressed', String(a))
+      })
+    })
+    builderPaletteRow.appendChild(btn)
+  })
+
+  // --- Accessory row ---
+  const activeAccessory = savedAccessoryId()
+  const noneBtn = document.createElement('button')
+  noneBtn.className = 'accessory-item'
+  noneBtn.dataset.id = 'none'
+  noneBtn.dataset.active = String(!activeAccessory)
+  noneBtn.setAttribute('aria-label', 'No accessory')
+  noneBtn.innerHTML = `<span class="accessory-emoji">✕</span><span class="accessory-label">None</span>`
+  builderAccessRow.appendChild(noneBtn)
+
+  ACCESSORY_LIST.forEach(meta => {
+    const btn = document.createElement('button')
+    btn.className = 'accessory-item'
+    btn.dataset.id = meta.id
+    btn.dataset.active = String(meta.id === activeAccessory)
+    btn.setAttribute('aria-label', meta.label)
+    btn.setAttribute('aria-pressed', String(meta.id === activeAccessory))
+    btn.innerHTML = `<span class="accessory-emoji">${meta.emoji}</span><span class="accessory-label">${meta.label}</span>`
+    builderAccessRow.appendChild(btn)
+  })
+
+  builderAccessRow.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.accessory-item')
+    if (!btn) return
+    const id = btn.dataset.id as AccessoryId | 'none'
+    const accessoryId = id === 'none' ? null : id
+    if (mascot3d) mascot3d.setAccessory(accessoryId)
+    if (accessoryId) localStorage.setItem(ACCESSORY_STORAGE_KEY, accessoryId)
+    else localStorage.removeItem(ACCESSORY_STORAGE_KEY)
+    syncBuilderActive(builderAccessRow, id)
+    // Keep standalone accessory picker in sync
+    accessoryGrid.querySelectorAll<HTMLButtonElement>('.accessory-item').forEach(b => {
+      b.dataset.active = String(b.dataset.id === id)
+    })
+  })
+
+  builderClose.addEventListener('click', closeBuilder)
+  builderBtn.addEventListener('click', openBuilder)
+  builderPanel.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBuilder() })
+}
+
+// ---------------------------------------------------------------------------
 // Palette picker — Task 15
 // ---------------------------------------------------------------------------
 
@@ -656,6 +778,7 @@ async function init() {
   initMascotRenderer()
   initTraitReview()
   initAiSection()
+  initBuilderPanel()
   initPalettePicker()
   initAccessoryPicker()
   settingsBtn.addEventListener('click', openSettings)
