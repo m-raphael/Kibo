@@ -74,6 +74,7 @@ State transitions are debounced with a 400 ms hysteresis to prevent flickering. 
 | macOS | 13 Ventura+ | — |
 | Node.js | **22+** | `nvm install 22` |
 | npm | 10+ | bundled with Node 22 |
+| Docker | 24+ | [docker.com](https://www.docker.com) — optional, runs the frontend dev server |
 | Rust | stable **1.77+** | [rustup.rs](https://rustup.rs) |
 | Python | **3.10+** | [python.org](https://www.python.org/downloads/) |
 | Tauri CLI v2 | latest | `cargo install tauri-cli` |
@@ -131,12 +132,40 @@ cp .env.example .env
 
 ---
 
+## Quick Start
+
+### Local (full app — macOS only)
+
+```bash
+npm ci
+pip3 install -r services/face-tracker/requirements.txt
+npm start              # launches Tauri dev (Vite + Rust + Python tracker)
+```
+
+The mascot window appears on screen, camera activates, and everything hot-reloads on code changes.
+
+### Docker (frontend only — cross-platform)
+
+```bash
+npm run docker:dev     # Vite dev server on port 1420, no native deps needed
+```
+
+Open `http://localhost:1420` in a browser. The cat renders but won't react to your face (no camera, no tracker).
+
+---
+
 ## Commands
 
 ```bash
-# ── Development ──────────────────────────────────────────
-npm run dev            # Start Vite frontend dev server (port 1420)
-npm run tauri:dev      # Start full Tauri app (Vite + Rust hot-reload)
+# ── Local Development ─────────────────────────────────────
+npm start              # Full Tauri app (Vite + Rust + Python tracker)
+npm run dev            # Vite frontend only (port 1420, no Tauri shell)
+npm run tauri:dev      # Same as `npm start`
+
+# ── Docker Development ────────────────────────────────────
+npm run docker:dev      # Vite dev server in Docker (port 1420)
+npm run docker:dev:bg   # Same, detached (background)
+npm run docker:down     # Stop and remove container
 
 # ── Type checking ────────────────────────────────────────
 npm run typecheck      # tsc --noEmit across src/ and all packages/
@@ -152,6 +181,56 @@ gitleaks detect --source . --log-opts="HEAD"  # Full history scan
 ```
 
 ---
+
+## Docker
+
+The included `Dockerfile` and `docker-compose.yml` run the **Vite frontend dev server** in a container — useful for working on the UI, renderer, and mascot logic without installing Node.js locally.
+
+**What Docker covers:**
+- Vite dev server with hot reload (port 1420)
+- TypeScript packages: `mascot-core`, `mascot-renderer`, `shared`
+
+**What Docker does NOT cover:**
+- The Tauri native shell (requires macOS frameworks)
+- The Python face tracker (requires a webcam and MediaPipe)
+- Full `.app` bundle builds
+
+Source files in `src/` and `packages/` are volume-mounted, so edits trigger hot reload.
+
+### Docker Desktop
+
+1. Open **Docker Desktop** and wait for the engine to start.
+2. Navigate to `apps/macos-companion/cyberpet` in your terminal.
+3. Run:
+
+```bash
+docker compose up --build
+```
+
+Or open the folder in VS Code, right-click `docker-compose.yml` → **Compose Up**.
+
+4. Open `http://localhost:1420` and you'll see the cat.
+
+### CLI
+
+```bash
+# First-time setup (build the image)
+npm run docker:setup
+
+# Launch the dev server
+npm run docker:dev       # foreground (shows logs)
+npm run docker:dev:bg    # background (detached)
+
+# Stop
+npm run docker:down
+```
+
+### Hot reload
+
+Edits to `src/` or `packages/` are picked up instantly — no manual rebuild or restart needed.
+
+---
+
 
 ## Project Structure
 

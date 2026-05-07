@@ -1,0 +1,10 @@
+node_modules
+dist
+src-tauri/target
+.git
+.github
+*.md
+!.env.example
+.env
+.DS_Store
+docs

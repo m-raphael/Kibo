@@ -8,6 +8,11 @@
     "build:staging": "npm run build:staging --prefix apps/macos-companion/cyberpet",
     "typecheck":     "npm run typecheck    --prefix apps/macos-companion/cyberpet",
     "tauri:dev":     "npm run tauri:dev    --prefix apps/macos-companion/cyberpet",
-    "tauri:build":   "npm run tauri:build  --prefix apps/macos-companion/cyberpet"
+    "tauri:build":   "npm run tauri:build  --prefix apps/macos-companion/cyberpet",
+    "start":         "npm start             --prefix apps/macos-companion/cyberpet",
+    "docker:dev":    "npm run docker:dev    --prefix apps/macos-companion/cyberpet",
+    "docker:setup":  "npm run docker:setup  --prefix apps/macos-companion/cyberpet",
+    "docker:dev:bg": "npm run docker:dev:bg --prefix apps/macos-companion/cyberpet",
+    "docker:down":   "npm run docker:down   --prefix apps/macos-companion/cyberpet"
   }
 }
