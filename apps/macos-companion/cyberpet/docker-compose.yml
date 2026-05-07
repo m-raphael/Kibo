@@ -4,11 +4,14 @@ services:
     container_name: cyberpet-dev
     ports:
       - "1420:1420"
+    init: true
     volumes:
       - ./src:/app/src
       - ./packages:/app/packages
+      - ./assets:/app/assets
       - ./vite.config.ts:/app/vite.config.ts
       - ./tsconfig.json:/app/tsconfig.json
+      - ./.env.local:/app/.env.local:ro
     environment:
       - NODE_ENV=development
       - VITE_DEV_PORT=1420
