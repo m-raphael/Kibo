@@ -9,9 +9,14 @@ import {
   buildAccessory,
   type AccessoryId,
 } from './accessories/index.js'
+import {
+  PALETTE_LIST,
+  type PaletteId,
+} from './palettes/index.js'
 
-export type { AccessoryId }
+export type { AccessoryId, PaletteId }
 export { ACCESSORY_LIST } from './accessories/index.js'
+export { PALETTE_LIST } from './palettes/index.js'
 
 // ---------------------------------------------------------------------------
 // Three.js 3D mascot renderer — Mi Bunny mascot system
@@ -22,6 +27,7 @@ export interface ThreeMascotHandle {
   update:        (state?: MascotState, dx?: number, dy?: number, faceDetected?: boolean) => void
   setMascot:     (id: MascotId) => void
   setAccessory:  (id: AccessoryId | null) => void
+  setPalette:    (id: PaletteId) => void
   dispose:       () => void
 }
 
@@ -109,6 +115,25 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
     currentAccessoryId = id
   }
 
+  // Palette — snapshot original colors on load, restore on 'original'
+  let currentPaletteId: PaletteId = 'original'
+  const snapshotBodyColor = () =>
+    (mascot.body.material as THREE.MeshStandardMaterial).color.getHex()
+  const snapshotHeadColor = () =>
+    (mascot.head.material as THREE.MeshStandardMaterial).color.getHex()
+
+  let originalBodyHex = snapshotBodyColor()
+  let originalHeadHex = snapshotHeadColor()
+
+  function applyPalette(id: PaletteId) {
+    currentPaletteId = id
+    const palette = PALETTE_LIST.find(p => p.id === id)
+    const bodyHex  = palette?.body ?? originalBodyHex
+    const headHex  = palette?.body ?? originalHeadHex
+    ;(mascot.body.material as THREE.MeshStandardMaterial).color.setHex(bodyHex)
+    ;(mascot.head.material as THREE.MeshStandardMaterial).color.setHex(headHex)
+  }
+
   let tgt: AnimTargets = { ...TARGET_NEUTRAL }
   let cur: AnimTargets = { ...TARGET_NEUTRAL }
 
@@ -187,12 +212,19 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
       cur = { ...TARGET_NEUTRAL }
       tgt = { ...TARGET_NEUTRAL }
       blinkPhase = 0
-      // Re-attach accessory to the new mascot's head
+      // Snapshot new mascot's original colors then re-apply current palette
+      originalBodyHex = snapshotBodyColor()
+      originalHeadHex = snapshotHeadColor()
+      applyPalette(currentPaletteId)
       if (currentAccessoryId) attachAccessory(currentAccessoryId)
     },
 
     setAccessory(id: AccessoryId | null) {
       attachAccessory(id)
+    },
+
+    setPalette(id: PaletteId) {
+      applyPalette(id)
     },
 
     dispose() {

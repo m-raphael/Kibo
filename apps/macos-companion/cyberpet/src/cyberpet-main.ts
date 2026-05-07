@@ -17,9 +17,9 @@ import {
 import {
   buildMascotSvg, updateMascotState, setPupilOffset,
   buildMascotOrb, updateOrbState, setOrbEyesVisible, setOrbEyeOffset,
-  buildMascot3d, MASCOT_LIST, ACCESSORY_LIST,
+  buildMascot3d, MASCOT_LIST, ACCESSORY_LIST, PALETTE_LIST,
 } from '@cyberpet/mascot-renderer'
-import type { ThreeMascotHandle, MascotId, AccessoryId } from '@cyberpet/mascot-renderer'
+import type { ThreeMascotHandle, MascotId, AccessoryId, PaletteId } from '@cyberpet/mascot-renderer'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,6 +71,11 @@ const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElemen
 const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
 const aiSaveBtn     = document.getElementById('ai-save')!
 const aiClearBtn    = document.getElementById('ai-clear')!
+// Palette picker
+const palettePanel    = document.getElementById('palette-panel')!
+const paletteClose    = document.getElementById('palette-close')!
+const paletteSwatches = document.getElementById('palette-swatches')!
+const paletteBtn      = document.getElementById('palette-btn')!
 // Accessory picker
 const accessoryPanel = document.getElementById('accessory-panel')!
 const accessoryClose = document.getElementById('accessory-close')!
@@ -516,6 +521,71 @@ function initTraitReview() {
 }
 
 // ---------------------------------------------------------------------------
+// Palette picker — Task 15
+// ---------------------------------------------------------------------------
+
+const PALETTE_STORAGE_KEY = 'cyberpet:palette-id'
+
+function savedPaletteId(): PaletteId {
+  return (localStorage.getItem(PALETTE_STORAGE_KEY) as PaletteId | null) ?? 'original'
+}
+
+function openPalettePanel() {
+  closeSettings()
+  palettePanel.classList.remove('hidden')
+  requestAnimationFrame(() => palettePanel.classList.add('open'))
+}
+
+function closePalettePanel() {
+  palettePanel.classList.remove('open')
+  palettePanel.addEventListener('transitionend', () => palettePanel.classList.add('hidden'), { once: true })
+}
+
+function initPalettePicker() {
+  const active = savedPaletteId()
+  if (mascot3d) mascot3d.setPalette(active)
+
+  PALETTE_LIST.forEach(palette => {
+    const btn = document.createElement('button')
+    btn.className = 'palette-swatch'
+    btn.dataset.id = palette.id
+    btn.dataset.active = String(palette.id === active)
+    btn.setAttribute('aria-label', palette.label)
+    btn.setAttribute('aria-pressed', String(palette.id === active))
+
+    const circle = document.createElement('span')
+    circle.className = 'swatch-circle'
+    circle.style.background = `#${palette.swatch.toString(16).padStart(6, '0')}`
+
+    const label = document.createElement('span')
+    label.className = 'swatch-label'
+    label.textContent = palette.label
+
+    btn.append(circle, label)
+    paletteSwatches.appendChild(btn)
+  })
+
+  paletteSwatches.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.palette-swatch')
+    if (!btn) return
+    const id = btn.dataset.id as PaletteId
+
+    if (mascot3d) mascot3d.setPalette(id)
+    localStorage.setItem(PALETTE_STORAGE_KEY, id)
+
+    paletteSwatches.querySelectorAll<HTMLButtonElement>('.palette-swatch').forEach(b => {
+      const isActive = b.dataset.id === id
+      b.dataset.active = String(isActive)
+      b.setAttribute('aria-pressed', String(isActive))
+    })
+  })
+
+  paletteClose.addEventListener('click', closePalettePanel)
+  paletteBtn.addEventListener('click', openPalettePanel)
+  palettePanel.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePalettePanel() })
+}
+
+// ---------------------------------------------------------------------------
 // Accessory picker — Task 14
 // ---------------------------------------------------------------------------
 
@@ -586,6 +656,7 @@ async function init() {
   initMascotRenderer()
   initTraitReview()
   initAiSection()
+  initPalettePicker()
   initAccessoryPicker()
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)

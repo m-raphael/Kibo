@@ -1263,3 +1263,118 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
   text-align: center;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   PALETTE PICKER — Task 15
+   ========================================================================== */
+
+#palette-panel {
+  position: absolute;
+  inset: 0;
+  top: auto;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 14, 22, 0.98);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 28px 28px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: none;
+  z-index: 25;
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.20s ease;
+}
+
+#palette-panel.open   { transform: translateY(0); opacity: 1; }
+#palette-panel.hidden { display: none; }
+
+#palette-panel::before {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+#palette-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+}
+
+.palette-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.80);
+}
+
+#palette-close {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+#palette-close:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); }
+#palette-close:focus-visible { outline: 2px solid #FF6900; outline-offset: 2px; }
+
+#palette-swatches {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px 28px;
+  flex-wrap: wrap;
+}
+
+.palette-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-family: var(--font);
+}
+
+.palette-swatch:focus-visible { outline: 2px solid #FF6900; border-radius: 50%; }
+
+.swatch-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.10);
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.palette-swatch:hover .swatch-circle {
+  transform: scale(1.10);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+
+.palette-swatch[data-active="true"] .swatch-circle {
+  border-color: #FF6900;
+  box-shadow: 0 0 0 3px rgba(255, 105, 0, 0.28);
+  transform: scale(1.12);
+}
+
+.swatch-label {
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.02em;
+}
