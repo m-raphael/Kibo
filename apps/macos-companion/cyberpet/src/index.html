@@ -27,6 +27,24 @@
     </div>
   </div>
 
+  <!-- Onboarding overlay — Task 1 -->
+  <div id="onboarding" class="hidden" role="dialog" aria-label="Welcome to CyberPet" aria-modal="true">
+    <div class="onboard-icon" aria-hidden="true">🐾</div>
+    <h1 class="onboard-title">CyberPet</h1>
+    <p class="onboard-body">
+      Your camera reads facial expressions to match you with a companion mascot.
+      <strong>Everything stays on your device.</strong>
+      No video is stored or sent anywhere.
+    </p>
+    <div class="onboard-badges" aria-hidden="true">
+      <span class="onboard-badge">On-device</span>
+      <span class="onboard-badge">No upload</span>
+      <span class="onboard-badge">No storage</span>
+    </div>
+    <button id="onboard-start" class="primary-btn onboard-start-btn">Allow Camera &amp; Start</button>
+    <button id="onboard-skip" class="onboard-skip">Not now</button>
+  </div>
+
   <!-- Scan progress overlay -->
   <div id="scan-overlay" class="hidden" role="status" aria-label="Face scan in progress">
     <svg id="scan-ring-svg" width="88" height="88" viewBox="0 0 88 88" aria-hidden="true">

@@ -71,6 +71,10 @@ const aiProvider    = document.getElementById('ai-provider') as HTMLSelectElemen
 const aiKeyInput    = document.getElementById('ai-key') as HTMLInputElement
 const aiSaveBtn     = document.getElementById('ai-save')!
 const aiClearBtn    = document.getElementById('ai-clear')!
+// Onboarding
+const onboarding    = document.getElementById('onboarding')!
+const onboardStart  = document.getElementById('onboard-start')!
+const onboardSkip   = document.getElementById('onboard-skip')!
 // Scan overlay
 const scanOverlay   = document.getElementById('scan-overlay')!
 const scanRingFill  = document.getElementById('scan-ring-fill')!
@@ -229,6 +233,21 @@ function cancelScan() {
   scanOverlay.classList.add('hidden')
   scanRingFill.style.strokeDashoffset = String(RING_CIRCUMFERENCE)
   onScanComplete = null
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding — Task 1
+// ---------------------------------------------------------------------------
+
+function showOnboarding() {
+  onboarding.classList.remove('hidden')
+  requestAnimationFrame(() => onboarding.classList.add('visible'))
+  onboardStart.focus()
+}
+
+function hideOnboarding() {
+  onboarding.classList.remove('visible')
+  onboarding.addEventListener('transitionend', () => onboarding.classList.add('hidden'), { once: true })
 }
 
 // ---------------------------------------------------------------------------
@@ -523,8 +542,21 @@ async function init() {
   const state = await readPermissionState()
   renderCameraUI(state)
 
+  // Onboarding button wiring
+  onboardStart.addEventListener('click', async () => {
+    onboardStart.textContent = 'Requesting…'
+    onboardStart.setAttribute('disabled', 'true')
+    await requestCamera()
+    onboardStart.removeAttribute('disabled')
+    const newState = await readPermissionState()
+    if (newState === 'authorized') hideOnboarding()
+    else onboardStart.textContent = 'Allow Camera & Start'
+  })
+
+  onboardSkip.addEventListener('click', hideOnboarding)
+
   if (state === 'notDetermined') {
-    setTimeout(openSettings, 500)
+    setTimeout(showOnboarding, 300)
   } else if (state === 'authorized') {
     startTracker()
   }
