@@ -1,12 +1,12 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // Fallback chain — tried in order when the primary provider rate-limits or fails
-  readonly VITE_LLM_PROVIDER:        string | undefined  // Tier 1 (primary)
-  readonly VITE_LLM_FALLBACK_1:      string | undefined  // Tier 2
-  readonly VITE_LLM_FALLBACK_2:      string | undefined  // Tier 3
-  readonly VITE_LLM_FALLBACK_3:      string | undefined  // Tier 4 (local guarantee)
-  readonly VITE_LLM_MODEL:           string | undefined
+  // Fallback chain
+  readonly VITE_LLM_PROVIDER:        string | undefined  // Tier 1 primary
+  readonly VITE_LLM_FALLBACK_1:      string | undefined
+  readonly VITE_LLM_FALLBACK_2:      string | undefined
+  readonly VITE_LLM_FALLBACK_3:      string | undefined
+  readonly VITE_LLM_FALLBACK_4:      string | undefined  // Tier 5 local guarantee
 
   // Per-provider API keys
   readonly VITE_ANTHROPIC_API_KEY:   string | undefined
@@ -20,6 +20,16 @@ interface ImportMetaEnv {
   readonly VITE_XAI_API_KEY:         string | undefined
   readonly VITE_OPENAI_API_KEY:      string | undefined
   readonly VITE_OPENAI_BASE_URL:     string | undefined
+
+  // Per-provider models (each provider runs a different model)
+  readonly VITE_ANTHROPIC_MODEL:     string | undefined
+  readonly VITE_NVIDIA_MODEL:        string | undefined
+  readonly VITE_GROQ_MODEL:          string | undefined
+  readonly VITE_HUGGINGFACE_MODEL:   string | undefined
+  readonly VITE_OPENROUTER_MODEL:    string | undefined
+  readonly VITE_TOGETHER_MODEL:      string | undefined
+  readonly VITE_GEMINI_MODEL:        string | undefined
+  readonly VITE_XAI_MODEL:           string | undefined
   readonly VITE_OPENAI_MODEL:        string | undefined
 
   // Claude Code CLI auto-injects this (covered by envPrefix: ANTHROPIC_)

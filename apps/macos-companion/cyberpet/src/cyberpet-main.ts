@@ -516,6 +516,23 @@ function resolveProviderKey(provider: string): string {
   return map[provider] ?? ''
 }
 
+// Each provider has its own model env var — VITE_<PROVIDER_UPPER>_MODEL
+function resolveProviderModel(provider: string): string | undefined {
+  const e = import.meta.env
+  const map: Record<string, string | undefined> = {
+    'anthropic':         e.VITE_ANTHROPIC_MODEL  ?? undefined,
+    'nvidia-nim':        e.VITE_NVIDIA_MODEL      ?? undefined,
+    'groq':              e.VITE_GROQ_MODEL        ?? undefined,
+    'huggingface':       e.VITE_HUGGINGFACE_MODEL ?? undefined,
+    'openrouter':        e.VITE_OPENROUTER_MODEL  ?? undefined,
+    'together':          e.VITE_TOGETHER_MODEL    ?? undefined,
+    'gemini':            e.VITE_GEMINI_MODEL      ?? undefined,
+    'xai':               e.VITE_XAI_MODEL         ?? undefined,
+    'openai-compatible': e.VITE_OPENAI_MODEL      ?? undefined,
+  }
+  return map[provider]
+}
+
 function buildConfig(provider: string): LlmConfig | null {
   if (!provider || provider === 'none') return null
   const key = resolveProviderKey(provider)
@@ -523,8 +540,7 @@ function buildConfig(provider: string): LlmConfig | null {
   return {
     provider: provider as LlmConfig['provider'],
     apiKey:   key,
-    model:    (import.meta.env.VITE_LLM_MODEL    as string | undefined) ||
-              (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || undefined,
+    model:    resolveProviderModel(provider),
     baseUrl:  (import.meta.env.VITE_OPENAI_BASE_URL as string | undefined) ||
               (import.meta.env.VITE_NVIDIA_NIM_BASE  as string | undefined) || undefined,
   }
@@ -551,6 +567,7 @@ function loadLlmConfigs(): LlmConfig[] {
     import.meta.env.VITE_LLM_FALLBACK_1,
     import.meta.env.VITE_LLM_FALLBACK_2,
     import.meta.env.VITE_LLM_FALLBACK_3,
+    import.meta.env.VITE_LLM_FALLBACK_4,
   ]
     .filter((p): p is string => Boolean(p))
     .map(buildConfig)
