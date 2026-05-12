@@ -13,8 +13,27 @@ const CREAM   = 0xF2EDE4   // warm cream — eye patches, inner ears
 const STRIPE  = 0x5C2410   // dark brown — tail stripe rings
 const NOSE_C  = 0x0A080C   // black nose
 
-function mat(c: number, r = 0.88): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: 0 })
+// MeshPhysicalMaterial gives sheen (anisotropic fur highlight) and a soft
+// subsurface feel that matches the Xiaomi Mi Bunny plush toy aesthetic.
+function mat(c: number, r = 0.88): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: c,
+    roughness: r,
+    metalness: 0,
+    sheen: 0.65,
+    sheenRoughness: 0.75,
+    sheenColor: new THREE.Color(c).multiplyScalar(1.35),
+  })
+}
+
+function matGlossy(c: number): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    color: c,
+    roughness: 0.05,
+    metalness: 0.10,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.1,
+  })
 }
 
 export function buildMiBunnyRedPanda(): MascotParts {
@@ -64,9 +83,25 @@ export function buildMiBunnyRedPanda(): MascotParts {
   const patchR = new THREE.Mesh(patchGeo, mat(CREAM, 0.94))
   patchR.scale.set(0.95, 1.0, 0.38); patchR.position.set( 0.28, 0.75, 0.90); group.add(patchR)
 
+  // Fur volume — slightly larger translucent orange sphere gives depth illusion
+  const furVol = new THREE.Mesh(
+    new THREE.SphereGeometry(1.04, 32, 24),
+    new THREE.MeshPhysicalMaterial({
+      color: ORANGE,
+      roughness: 0.95,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.BackSide,
+    }),
+  )
+  furVol.scale.set(1.02, 0.88, 0.96)
+  furVol.position.y = 0.70
+  group.add(furVol)
+
   // ── Eyes (large, dark, glossy) ───────────────────────────────────────────
-  const eyeMat   = new THREE.MeshStandardMaterial({ color: 0x100C0E, roughness: 0.04, metalness: 0.18 })
-  const glintMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0 })
+  const eyeMat   = matGlossy(0x100C0E)
+  const glintMat = new THREE.MeshPhysicalMaterial({ color: 0xFFFFFF, roughness: 0, clearcoat: 1 })
 
   const eyeL  = new THREE.Mesh(new THREE.SphereGeometry(0.115, 16, 14), eyeMat)
   const eyeR  = new THREE.Mesh(new THREE.SphereGeometry(0.115, 16, 14), eyeMat.clone())

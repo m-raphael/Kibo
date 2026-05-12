@@ -36,9 +36,15 @@ export function initThreeScene(container: HTMLElement): ThreeSceneHandle {
   fillLight.position.set(-3, 1, 2)
   scene.add(fillLight)
 
-  const rimLight = new THREE.DirectionalLight(0xffffff, 0.5)
-  rimLight.position.set(0, -2, -4)
+  // Rim light — warm backlight creates the glowing orange halo (Xiaomi plush feel)
+  const rimLight = new THREE.DirectionalLight(0xFF8844, 0.80)
+  rimLight.position.set(0, -1, -5)
   scene.add(rimLight)
+
+  // Cool fill from below-front to separate mascot from background
+  const fillLow = new THREE.DirectionalLight(0xCCDDFF, 0.22)
+  fillLow.position.set(0, -4, 3)
+  scene.add(fillLow)
 
   const group = new THREE.Group()
   scene.add(group)
