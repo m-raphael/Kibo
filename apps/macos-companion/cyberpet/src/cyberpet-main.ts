@@ -35,6 +35,75 @@ interface TauriMascotState {
 
 const STATE_HOLD_MS = 400
 
+let isFullscreen = false
+
+// ---------------------------------------------------------------------------
+// Person-change detection — monitors geometry_key across live frames.
+// When a new key is stable for PERSON_CHANGE_FRAMES consecutive frames,
+// we switch to that person's stored mascot (or suggest a scan).
+// This is NOT biometric — geometry_key is a coarse visual category.
+// ---------------------------------------------------------------------------
+
+const PERSON_CHANGE_FRAMES = 45   // ~1.5 s at 30 fps
+const FACE_KEY_STORE       = 'cyberpet:face-key:'  // prefix; key appended
+
+let _lastKey        = ''
+let _pendingKey     = ''
+let _pendingCount   = 0
+
+function onPersonChange(newKey: string) {
+  const stored = localStorage.getItem(FACE_KEY_STORE + newKey)
+  if (stored && mascot3d) {
+    // Known face — silently restore their mascot
+    mascot3d.setMascot(stored as import('@cyberpet/mascot-renderer').MascotId)
+    localStorage.setItem(MASCOT_STORAGE_KEY, stored)
+    mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
+      const a = p.dataset.id === stored
+      p.dataset.active = String(a)
+      p.setAttribute('aria-pressed', String(a))
+    })
+  }
+  // Unknown face — do nothing (user can run a scan manually)
+}
+
+function trackPersonChange(geometryKey: string) {
+  if (!geometryKey || geometryKey === 'AAAA') return
+
+  if (geometryKey === _lastKey) {
+    _pendingKey   = ''
+    _pendingCount = 0
+    return
+  }
+
+  if (geometryKey !== _pendingKey) {
+    _pendingKey   = geometryKey
+    _pendingCount = 1
+  } else {
+    _pendingCount++
+    if (_pendingCount >= PERSON_CHANGE_FRAMES) {
+      _lastKey    = _pendingKey
+      _pendingKey = ''
+      _pendingCount = 0
+      onPersonChange(_lastKey)
+    }
+  }
+}
+
+/** Call after a successful mascot assignment to remember this face → mascot. */
+function storeFaceAssignment(geometryKey: string, mascotId: string) {
+  if (geometryKey && geometryKey !== 'AAAA') {
+    localStorage.setItem(FACE_KEY_STORE + geometryKey, mascotId)
+  }
+}
+
+async function toggleFullscreen() {
+  isFullscreen = await invoke<boolean>('toggle_fullscreen')
+  document.body.classList.toggle('fullscreen-mode', isFullscreen)
+  fsExpand.style.display   = isFullscreen ? 'none' : ''
+  fsContract.style.display = isFullscreen ? '' : 'none'
+  fullscreenBtn.setAttribute('aria-label', isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen')
+}
+
 // ---------------------------------------------------------------------------
 // DOM refs
 // ---------------------------------------------------------------------------
@@ -88,6 +157,10 @@ const accessoryPanel = document.getElementById('accessory-panel')!
 const accessoryClose = document.getElementById('accessory-close')!
 const accessoryGrid  = document.getElementById('accessory-grid')!
 const accessoryBtn   = document.getElementById('accessory-btn')!
+// Fullscreen toggle
+const fullscreenBtn = document.getElementById('fullscreen-btn')!
+const fsExpand      = document.getElementById('fs-expand') as HTMLElement
+const fsContract    = document.getElementById('fs-contract') as HTMLElement
 // Onboarding
 const onboarding    = document.getElementById('onboarding')!
 const onboardStart  = document.getElementById('onboard-start')!
@@ -338,6 +411,11 @@ async function startTracker() {
       updatePupils(f)
       updateDebug(f)
 
+      // Person-change detection from face geometry
+      if (f.face_detected && f.appearance?.geometry_key) {
+        trackPersonChange(f.appearance.geometry_key)
+      }
+
       // Feed scan accumulator when a scan is in progress
       if (scanning) {
         accumulator.push(f, state)
@@ -422,10 +500,24 @@ const AI_KEY_STORE      = 'cyberpet:ai-key'
 const AI_PROVIDER_STORE = 'cyberpet:ai-provider'
 
 function loadLlmConfig(): LlmConfig | null {
-  const key      = localStorage.getItem(AI_KEY_STORE)
-  const provider = (localStorage.getItem(AI_PROVIDER_STORE) ?? 'nvidia-nim') as LlmConfig['provider']
-  if (!key) return null
-  return { provider, apiKey: key }
+  // 1. Settings panel takes priority (key entered in the UI)
+  const uiKey      = localStorage.getItem(AI_KEY_STORE)
+  const uiProvider = localStorage.getItem(AI_PROVIDER_STORE) as LlmConfig['provider'] | null
+  if (uiKey && uiProvider) return { provider: uiProvider, apiKey: uiKey }
+
+  // 2. Fall back to .env (VITE_LLM_* — set at dev time, baked in at build time)
+  const envProvider = (import.meta.env.VITE_LLM_PROVIDER ?? '') as string
+  const envKey      = (import.meta.env.VITE_LLM_API_KEY  ?? '') as string
+  if (envProvider && envProvider !== 'none' && envKey) {
+    return {
+      provider: envProvider as LlmConfig['provider'],
+      apiKey:   envKey,
+      model:    (import.meta.env.VITE_LLM_MODEL    as string | undefined) || undefined,
+      baseUrl:  (import.meta.env.VITE_LLM_BASE_URL as string | undefined) || undefined,
+    }
+  }
+
+  return null
 }
 
 let aiPanelOpen = false
@@ -478,15 +570,15 @@ function initTraitReview() {
   mascotCard.appendChild(reviewHandle.element)
   mascotCard.appendChild(assignment.element)
 
-  function openReviewWith(profile: MascotProfile) {
+  function openReviewWith(profile: MascotProfile, facialProfile?: import('@cyberpet/mascot-core').FacialProfile) {
     // Rebuild chip list with the new profile's traits
     reviewHandle.destroy()
     reviewHandle = buildTraitReview(profile)
 
-    // Rewire save callback
+    // Rewire save callback — pass facial profile so appearance shapes the result
     reviewHandle.onSave((traits, _animal) => {
       const config = loadLlmConfig()
-      assignMascot(traits, config).then(result => {
+      assignMascot(traits, config, facialProfile ?? null).then(result => {
         assignment.show(result, traits)
       })
     })
@@ -498,10 +590,11 @@ function initTraitReview() {
     ;(reviewHandle.element as unknown as { show: () => void }).show()
   }
 
-  // Wire assignment confirm — switch live mascot
+  // Wire assignment confirm — switch live mascot and remember face → mascot
   assignment.onConfirm((species: AssignedSpecies) => {
     if (mascot3d) mascot3d.setMascot(species)
     localStorage.setItem('cyberpet:mascot-id', species)
+    if (_lastKey) storeFaceAssignment(_lastKey, species)
     mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
       const active = p.dataset.id === species
       p.dataset.active = String(active)
@@ -516,7 +609,7 @@ function initTraitReview() {
     startScan((facialProfile) => {
       const traits  = inferTraits(facialProfile)
       const profile: MascotProfile = { animal: 'cat', traits, scannedAt: Date.now() }
-      openReviewWith(profile)
+      openReviewWith(profile, facialProfile)
     })
   }
 
@@ -784,6 +877,7 @@ async function init() {
   settingsBtn.addEventListener('click', openSettings)
   settingsClose.addEventListener('click', closeSettings)
   debugToggle.addEventListener('click', toggleDebug)
+  fullscreenBtn.addEventListener('click', toggleFullscreen)
 
   grantBtn.addEventListener('click', () => {
     if (grantBtn.textContent === 'Open System Settings') {

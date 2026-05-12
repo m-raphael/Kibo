@@ -1,4 +1,4 @@
-import type { TrackerFrame, MascotState } from './index.js'
+import type { TrackerFrame, MascotState, FaceShape, EyeShape, SkinTone } from './index.js'
 import type { FacialProfile } from './profile.js'
 
 // ---------------------------------------------------------------------------
@@ -33,6 +33,12 @@ export class ScanAccumulator {
   private _mouthAccum    = new SmearBuffer(0.99)
   private _movementAccum = new SmearBuffer(0.97)
 
+  // Appearance — mode (most frequent value) across scan frames
+  private _faceShapeVotes: Partial<Record<FaceShape, number>> = {}
+  private _eyeShapeVotes:  Partial<Record<EyeShape,  number>> = {}
+  private _skinToneVotes:  Partial<Record<SkinTone,  number>> = {}
+  private _geometryKeys:   string[] = []
+
   // -----------------------------------------------------------------------
   // Push one frame — call from the tracker listener (~30 fps)
   // -----------------------------------------------------------------------
@@ -63,6 +69,15 @@ export class ScanAccumulator {
         this._blinkEvents++
       }
       this._prevBlink = frame.blink
+
+      // Appearance — vote for most common value across the scan
+      if (frame.appearance) {
+        const { face_shape, eye_shape, skin_tone, geometry_key } = frame.appearance
+        this._faceShapeVotes[face_shape] = (this._faceShapeVotes[face_shape] ?? 0) + 1
+        this._eyeShapeVotes[eye_shape]   = (this._eyeShapeVotes[eye_shape]   ?? 0) + 1
+        this._skinToneVotes[skin_tone]   = (this._skinToneVotes[skin_tone]   ?? 0) + 1
+        this._geometryKeys.push(geometry_key)
+      }
     }
   }
 
@@ -111,6 +126,11 @@ export class ScanAccumulator {
       state_speaking:    this._stateCounts.speaking / total,
       state_happy:       this._stateCounts.happy / total,
       state_tired:       this._stateCounts.tired / total,
+      // Appearance: most frequent value seen during the scan
+      face_shape:   mode(this._faceShapeVotes) as FaceShape | undefined,
+      eye_shape:    mode(this._eyeShapeVotes)  as EyeShape  | undefined,
+      skin_tone:    mode(this._skinToneVotes)  as SkinTone  | undefined,
+      geometry_key: geometryMode(this._geometryKeys),
     }
   }
 
@@ -127,6 +147,10 @@ export class ScanAccumulator {
     this._smileAccum.reset()
     this._mouthAccum.reset()
     this._movementAccum.reset()
+    this._faceShapeVotes = {}
+    this._eyeShapeVotes  = {}
+    this._skinToneVotes  = {}
+    this._geometryKeys   = []
   }
 
   /** Stop accumulation early (e.g. on scan cancellation). */
@@ -157,4 +181,20 @@ class SmearBuffer {
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v
+}
+
+function mode(votes: Partial<Record<string, number>>): string | undefined {
+  let best: string | undefined
+  let max = 0
+  for (const [k, v] of Object.entries(votes)) {
+    if ((v ?? 0) > max) { max = v ?? 0; best = k }
+  }
+  return best
+}
+
+function geometryMode(keys: string[]): string | undefined {
+  if (keys.length === 0) return undefined
+  const counts: Record<string, number> = {}
+  for (const k of keys) counts[k] = (counts[k] ?? 0) + 1
+  return mode(counts)
 }

@@ -72,6 +72,37 @@ fn open_camera_settings() {
         .spawn();
 }
 
+#[tauri::command]
+fn toggle_fullscreen(app: tauri::AppHandle) -> Result<bool, String> {
+    let window = app.get_webview_window("main")
+        .ok_or_else(|| "window not found".to_string())?;
+
+    let sf   = window.scale_factor().map_err(|e| e.to_string())?;
+    let phys = window.inner_size().map_err(|e| e.to_string())?;
+    // Compact window is 320 logical px; anything wider is already expanded
+    let should_expand = (phys.width as f64 / sf) <= 400.0;
+
+    window.set_resizable(true).map_err(|e| e.to_string())?;
+
+    if should_expand {
+        let monitor = window.current_monitor()
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "no monitor".to_string())?;
+        let ms  = monitor.size();
+        let mf  = monitor.scale_factor();
+        let max = (ms.width as f64 / mf).min(ms.height as f64 / mf);
+        let sz  = (max * 0.85).clamp(600.0, 900.0);
+        window.set_size(tauri::LogicalSize::new(sz, sz)).map_err(|e| e.to_string())?;
+        window.center().map_err(|e| e.to_string())?;
+    } else {
+        window.set_size(tauri::LogicalSize::new(320.0f64, 320.0f64))
+              .map_err(|e| e.to_string())?;
+    }
+
+    window.set_resizable(false).map_err(|e| e.to_string())?;
+    Ok(should_expand)
+}
+
 // ---------------------------------------------------------------------------
 // Mascot profile
 // ---------------------------------------------------------------------------
@@ -233,9 +264,17 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
         }
     };
 
+    // Forward CYBERPET_* env vars to the Python subprocess so .env values reach the tracker
+    let cam_index  = std::env::var("CYBERPET_CAMERA_INDEX").unwrap_or_else(|_| "0".into());
+    let detect_cf  = std::env::var("CYBERPET_DETECTION_CONFIDENCE").unwrap_or_else(|_| "0.5".into());
+    let track_cf   = std::env::var("CYBERPET_TRACKING_CONFIDENCE").unwrap_or_else(|_| "0.5".into());
+
     std::thread::spawn(move || {
         let mut child = match Command::new(&python_path)
             .arg(&script)
+            .env("CYBERPET_CAMERA_INDEX",           &cam_index)
+            .env("CYBERPET_DETECTION_CONFIDENCE",   &detect_cf)
+            .env("CYBERPET_TRACKING_CONFIDENCE",    &track_cf)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
@@ -284,6 +323,7 @@ pub fn run() {
             start_tracker,
             get_mascot_state,
             set_mascot_state,
+            toggle_fullscreen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

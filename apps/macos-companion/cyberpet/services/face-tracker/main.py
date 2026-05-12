@@ -15,6 +15,7 @@ JSON schema per frame:
   or {"error": "<reason>"} if a fatal error occurs.
 """
 
+import os
 import sys
 import json
 import math
@@ -26,6 +27,9 @@ try:
 except ImportError as exc:
     print(json.dumps({"error": f"missing_dependency:{exc}"}), flush=True)
     sys.exit(1)
+
+# Appearance detection uses face geometry ONLY (no biometrics, no identity).
+# geometry_key is a coarse category (~10 000 buckets) — not uniquely identifying.
 
 # ---------------------------------------------------------------------------
 # Landmark indices (MediaPipe canonical face mesh, 468 points)
@@ -55,6 +59,22 @@ _MOUTH_RIGHT  = 291
 # Smile: outer lip corners vs face width
 _FACE_LEFT  = 33
 _FACE_RIGHT = 263
+
+# Face shape — outer geometry
+_FOREHEAD   = 10
+_CHIN       = 152
+_L_CHEEK    = 234   # left cheek / ear junction (max face width)
+_R_CHEEK    = 454   # right cheek / ear junction
+_L_JAW      = 172   # left jaw corner
+_R_JAW      = 397   # right jaw corner
+_L_TEMPLE   = 103   # left temporal
+_R_TEMPLE   = 332   # right temporal
+
+# Eye shape — single-eye vertical pair
+_L_EYE_TOP  = 159
+_L_EYE_BOT  = 145
+_R_EYE_TOP  = 386
+_R_EYE_BOT  = 374
 
 # ---------------------------------------------------------------------------
 # Feature functions
@@ -106,6 +126,95 @@ def _mouth_open(lm, w, h):
     horiz = abs(lft[0] - rgt[0])
     return round(min(1.0, vert / horiz) if horiz > 0 else 0.0, 3)
 
+def _face_shape(lm, w, h):
+    face_w   = math.dist(_pt(lm, _L_CHEEK, w, h),  _pt(lm, _R_CHEEK, w, h))
+    face_h   = math.dist(_pt(lm, _FOREHEAD, w, h),  _pt(lm, _CHIN, w, h))
+    jaw_w    = math.dist(_pt(lm, _L_JAW, w, h),     _pt(lm, _R_JAW, w, h))
+    temple_w = math.dist(_pt(lm, _L_TEMPLE, w, h),  _pt(lm, _R_TEMPLE, w, h))
+    if face_w < 1:
+        return 'oval'
+    ht  = face_h / face_w
+    jaw = jaw_w  / face_w
+    tmp = temple_w / face_w
+    if ht > 1.45:               return 'oblong'
+    if ht < 0.90:               return 'round'
+    if jaw < 0.72 and tmp > 0.82: return 'heart'
+    if jaw > 0.88:              return 'square'
+    return 'oval'
+
+
+def _eye_shape(lm, w, h):
+    l_outer  = _pt(lm, _L_EYE[0], w, h)
+    l_inner  = _pt(lm, _L_EYE[3], w, h)
+    l_top    = _pt(lm, _L_EYE_TOP, w, h)
+    l_bot    = _pt(lm, _L_EYE_BOT, w, h)
+    r_outer  = _pt(lm, _R_EYE[3], w, h)
+    r_inner  = _pt(lm, _R_EYE[0], w, h)
+    r_top    = _pt(lm, _R_EYE_TOP, w, h)
+    r_bot    = _pt(lm, _R_EYE_BOT, w, h)
+
+    def ratio(outer, inner, top, bot):
+        ew = math.dist(outer, inner)
+        eh = math.dist(top, bot)
+        return eh / ew if ew > 0 else 0.25
+
+    def slant(outer, inner, ew):
+        # positive → outer corner higher than inner (almond tilt)
+        return (inner[1] - outer[1]) / ew if ew > 0 else 0
+
+    l_ew   = math.dist(l_outer, l_inner)
+    r_ew   = math.dist(r_outer, r_inner)
+    ar     = (ratio(l_outer, l_inner, l_top, l_bot) +
+              ratio(r_outer, r_inner, r_top, r_bot)) / 2
+    slants = (slant(l_outer, l_inner, l_ew) +
+              slant(r_outer, r_inner, r_ew)) / 2
+
+    if ar < 0.20:               return 'narrow'
+    if ar > 0.34:               return 'round'
+    if slants > 0.04:           return 'almond'
+    return 'wide'
+
+
+def _skin_tone(lm, frame, w, h):
+    pts = [_pt(lm, _FOREHEAD, w, h),
+           _pt(lm, _L_CHEEK,  w, h),
+           _pt(lm, _R_CHEEK,  w, h)]
+    samples = []
+    for (px, py) in pts:
+        x, y = int(px), int(py)
+        if 0 <= x < w and 0 <= y < h:
+            b, g, r = frame[y, x]
+            samples.append((int(r), int(g), int(b)))
+    if not samples:
+        return 'neutral-medium'
+    avg_r = sum(s[0] for s in samples) / len(samples)
+    avg_g = sum(s[1] for s in samples) / len(samples)
+    avg_b = sum(s[2] for s in samples) / len(samples)
+    lum   = 0.299 * avg_r + 0.587 * avg_g + 0.114 * avg_b
+    warm  = avg_r - avg_b
+    tone  = 'light' if lum > 175 else ('dark' if lum < 95 else 'medium')
+    hue   = 'warm' if warm > 18 else ('cool' if warm < -12 else 'neutral')
+    return f'{hue}-{tone}'
+
+
+def _geometry_key(lm, w, h):
+    """Coarse geometric fingerprint — NOT a biometric identifier.
+    Encodes 4 face proportion ratios as single letters (A–P each = 0.0–1.5 in 0.1 steps).
+    ~10 000 categories total; many people share the same key."""
+    face_w = math.dist(_pt(lm, _L_CHEEK, w, h),   _pt(lm, _R_CHEEK, w, h))
+    face_h = math.dist(_pt(lm, _FOREHEAD, w, h),  _pt(lm, _CHIN, w, h))
+    iod    = math.dist(_pt(lm, _L_EYE[0], w, h),  _pt(lm, _R_EYE[0], w, h))
+    mw     = math.dist(_pt(lm, _MOUTH_LEFT, w, h), _pt(lm, _MOUTH_RIGHT, w, h))
+    if face_w < 1:
+        return 'AAAA'
+    def enc(v):
+        return chr(ord('A') + min(max(int(round(v, 1) * 10), 0), 15))
+    return (enc(face_h / face_w) +
+            enc(iod    / face_w) +
+            enc(mw     / face_w) +
+            enc(math.dist(_pt(lm, _L_JAW, w, h), _pt(lm, _R_JAW, w, h)) / face_w))
+
+
 def _smile(lm, w, h):
     nose     = _pt(lm, 1, w, h)
     lft_c    = _pt(lm, _MOUTH_LEFT,  w, h)
@@ -131,7 +240,11 @@ def _emit(data):
     print(json.dumps(data), flush=True)
 
 def run():
-    cap = cv2.VideoCapture(0)
+    cam_index  = int(os.environ.get('CYBERPET_CAMERA_INDEX', 0))
+    detect_cf  = float(os.environ.get('CYBERPET_DETECTION_CONFIDENCE', 0.5))
+    track_cf   = float(os.environ.get('CYBERPET_TRACKING_CONFIDENCE', 0.5))
+
+    cap = cv2.VideoCapture(cam_index)
     if not cap.isOpened():
         _emit({"error": "camera_unavailable"})
         return
@@ -140,8 +253,8 @@ def run():
     with mp_face.FaceMesh(
         max_num_faces=1,
         refine_landmarks=False,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
+        min_detection_confidence=detect_cf,
+        min_tracking_confidence=track_cf,
     ) as mesh:
         while cap.isOpened():
             ok, frame = cap.read()
@@ -161,9 +274,15 @@ def run():
             _emit({
                 "face_detected": True,
                 "head_pose": {"yaw": yaw, "pitch": pitch, "roll": roll},
-                "blink": _blink(lm, w, h),
-                "smile": _smile(lm, w, h),
+                "blink":      _blink(lm, w, h),
+                "smile":      _smile(lm, w, h),
                 "mouth_open": _mouth_open(lm, w, h),
+                "appearance": {
+                    "face_shape":   _face_shape(lm, w, h),
+                    "eye_shape":    _eye_shape(lm, w, h),
+                    "skin_tone":    _skin_tone(lm, frame, w, h),
+                    "geometry_key": _geometry_key(lm, w, h),
+                },
             })
 
     cap.release()

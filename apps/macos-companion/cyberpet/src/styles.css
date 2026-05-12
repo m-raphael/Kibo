@@ -71,6 +71,33 @@ html, body {
   outline-offset: 2px;
 }
 
+#fullscreen-btn {
+  position: absolute;
+  bottom: 13px;
+  left: 13px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+#fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+}
+
+#fullscreen-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 #mascot-face {
   font-size: 68px;
   line-height: 1;
@@ -606,6 +633,13 @@ html, body {
   top: auto;
   bottom: 14px;
   right: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+/* Fullscreen button — bottom-left, matches settings-btn style */
+#mascot-card[data-theme="xiaomi"] #fullscreen-btn {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -1550,3 +1584,43 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
 
 /* Re-use .accessory-item + .accessory-emoji + .accessory-label from T14 */
 .builder-accessory-row .accessory-item { flex-shrink: 0; }
+
+/* ==========================================================================
+   FULLSCREEN / EXPANDED VIEW
+   body.fullscreen-mode is toggled by the fullscreen button.
+   The Three.js ResizeObserver picks up the new #mascot-face dimensions
+   automatically and re-renders at the larger size.
+   ========================================================================== */
+
+body.fullscreen-mode,
+html:has(body.fullscreen-mode) {
+  width: 100vw;
+  height: 100vh;
+}
+
+body.fullscreen-mode #mascot-card {
+  border-radius: 0;
+}
+
+/* Make the face container fill ~65% of the shorter viewport dimension */
+body.fullscreen-mode #mascot-face {
+  width:  min(65vw, 65vh);
+  height: min(65vw, 65vh);
+  flex-shrink: 0;
+}
+
+/* Override the fixed canvas sizes so Three.js fills the larger container.
+   Specificity (1+10+100+100+1 = 212) beats the Xiaomi-theme override (211). */
+body.fullscreen-mode #mascot-card #mascot-face canvas {
+  width:  100% !important;
+  height: 100% !important;
+}
+
+body.fullscreen-mode #mascot-state {
+  font-size: 15px;
+  margin-top: 10px;
+}
+
+body.fullscreen-mode #mascot-selector {
+  margin-top: 14px;
+}

@@ -7,12 +7,27 @@ export type MascotState = 'idle' | 'attentive' | 'listening' | 'speaking' | 'hap
 export type { FacialProfile, AnimalType } from './profile.js'
 export { ScanAccumulator, SCAN_DURATION_MS, MIN_FACE_FRAMES } from './scanner.js'
 
+export type FaceShape = 'oval' | 'round' | 'square' | 'heart' | 'oblong'
+export type EyeShape  = 'almond' | 'round' | 'wide' | 'narrow'
+export type SkinTone  =
+  | 'warm-light'    | 'warm-medium'    | 'warm-dark'
+  | 'cool-light'    | 'cool-medium'    | 'cool-dark'
+  | 'neutral-light' | 'neutral-medium' | 'neutral-dark'
+
+export interface FaceAppearance {
+  face_shape:   FaceShape
+  eye_shape:    EyeShape
+  skin_tone:    SkinTone
+  geometry_key: string   // coarse category code, NOT a biometric identifier
+}
+
 export interface TrackerFrame {
   face_detected: boolean
   head_pose:     { yaw: number; pitch: number; roll: number }
   blink:         number
   smile:         number
   mouth_open:    number
+  appearance?:   FaceAppearance
 }
 
 // ---------------------------------------------------------------------------

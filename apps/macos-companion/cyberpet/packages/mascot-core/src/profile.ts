@@ -1,4 +1,4 @@
-import type { MascotState } from './index.js'
+import type { MascotState, FaceShape, EyeShape, SkinTone } from './index.js'
 
 // ---------------------------------------------------------------------------
 // Animal type — which mascot the user's face profile matches
@@ -25,6 +25,11 @@ export interface FacialProfile {
   state_speaking:    number
   state_happy:       number
   state_tired:       number
+  // Physical appearance (geometry-based, non-biometric)
+  face_shape?:       FaceShape
+  eye_shape?:        EyeShape
+  skin_tone?:        SkinTone
+  geometry_key?:     string
 }
 
 // ---------------------------------------------------------------------------

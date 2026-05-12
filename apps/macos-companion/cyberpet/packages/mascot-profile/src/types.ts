@@ -1,4 +1,4 @@
-import type { FacialProfile, AnimalType } from '@cyberpet/mascot-core'
+import type { FacialProfile, AnimalType, FaceShape, EyeShape } from '@cyberpet/mascot-core'
 import { assignFromTraitsLLM } from './llm-adapter.js'
 export type { LlmConfig } from './llm-adapter.js'
 
@@ -146,13 +146,67 @@ const SPECIES_RULES: SpeciesRule[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Visual appearance → mascot bias
+// Maps face geometry to a species score boost (added on top of behavioral score).
+// This ensures that even with similar behavior, physical look shapes the result.
+// ---------------------------------------------------------------------------
+
+const SHAPE_BIAS: Record<FaceShape, Partial<Record<AssignedSpecies, number>>> = {
+  oval:    { cat: 0.20, 'red-panda': 0.15, rabbit: 0.10 },
+  round:   { koala: 0.25, bear: 0.20, rabbit: 0.10 },
+  square:  { cow: 0.25, gibbon: 0.15, bear: 0.10 },
+  heart:   { rabbit: 0.25, cat: 0.15, 'red-panda': 0.10 },
+  oblong:  { pelican: 0.30, gibbon: 0.15 },
+}
+
+const EYE_BIAS: Record<EyeShape, Partial<Record<AssignedSpecies, number>>> = {
+  almond:  { cat: 0.20, 'red-panda': 0.15 },
+  round:   { koala: 0.20, bear: 0.15, rabbit: 0.10 },
+  wide:    { cow: 0.15, pelican: 0.10, rabbit: 0.10 },
+  narrow:  { 'red-panda': 0.20, cat: 0.10 },
+}
+
+/** Compute per-species appearance bias from face geometry. */
+function appearanceBias(profile: FacialProfile): Partial<Record<AssignedSpecies, number>> {
+  const bias: Partial<Record<AssignedSpecies, number>> = {}
+  const add = (src: Partial<Record<AssignedSpecies, number>>) => {
+    for (const [sp, v] of Object.entries(src) as [AssignedSpecies, number][]) {
+      bias[sp] = (bias[sp] ?? 0) + v
+    }
+  }
+  if (profile.face_shape) add(SHAPE_BIAS[profile.face_shape] ?? {})
+  if (profile.eye_shape)  add(EYE_BIAS[profile.eye_shape]   ?? {})
+  return bias
+}
+
+/** Build appearance-derived traits so the LLM prompt includes visual context. */
+export function appearanceTraits(profile: FacialProfile): Trait[] {
+  const out: Trait[] = []
+  if (profile.face_shape) out.push({
+    id: `face-${profile.face_shape}`, label: `${profile.face_shape} face shape`,
+    confidence: 0.85, source: 'face_shape',
+  })
+  if (profile.eye_shape) out.push({
+    id: `eye-${profile.eye_shape}`, label: `${profile.eye_shape} eyes`,
+    confidence: 0.80, source: 'eye_shape',
+  })
+  if (profile.skin_tone) out.push({
+    id: `tone-${profile.skin_tone}`, label: `${profile.skin_tone} complexion`,
+    confidence: 0.75, source: 'skin_tone',
+  })
+  return out
+}
+
 /** Map approved traits to a mascot species with reasons. Falls back to 'cat'. */
-export function assignFromTraits(traits: Trait[]): AssignmentResult {
+export function assignFromTraits(traits: Trait[], profile?: FacialProfile): AssignmentResult {
   if (traits.length === 0) {
     return { species: 'cat', label: 'Cat', emoji: '🐱', score: 0, reasons: ['No traits selected — defaulting to cat.'] }
   }
 
-  // Score each species: weighted sum of (trait.confidence × affinity)
+  const bias = profile ? appearanceBias(profile) : {}
+
+  // Score each species: behavioral (weighted trait sum) + appearance bias
   const scored = SPECIES_RULES.map(rule => {
     let total = 0
     let maxPossible = 0
@@ -169,7 +223,9 @@ export function assignFromTraits(traits: Trait[]): AssignmentResult {
     }
 
     contributions.sort((a, b) => b.contrib - a.contrib)
-    return { rule, score: maxPossible > 0 ? total / maxPossible : 0, contributions }
+    const behaviorScore = maxPossible > 0 ? total / maxPossible : 0
+    const visualBias    = bias[rule.species] ?? 0
+    return { rule, score: Math.min(behaviorScore + visualBias, 1), contributions }
   })
 
   scored.sort((a, b) => b.score - a.score)
@@ -221,16 +277,22 @@ export interface AssignmentResultWithSource extends AssignmentResult {
 export async function assignMascot(
   traits: Trait[],
   config?: import('./llm-adapter.js').LlmConfig | null,
+  profile?: FacialProfile | null,
 ): Promise<AssignmentResultWithSource> {
+  // Merge visual appearance traits into the trait list for the LLM prompt
+  const allTraits = profile
+    ? [...traits, ...appearanceTraits(profile)]
+    : traits
+
   if (config?.apiKey) {
     try {
-      const result = await assignFromTraitsLLM(traits, config)
+      const result = await assignFromTraitsLLM(allTraits, config)
       return { ...result, source: 'llm' }
     } catch (err) {
       console.warn('[CyberPet] LLM assignment failed — using local rules.', err)
     }
   }
-  return { ...assignFromTraits(traits), source: 'local' }
+  return { ...assignFromTraits(traits, profile ?? undefined), source: 'local' }
 }
 
 // ---------------------------------------------------------------------------
