@@ -35,7 +35,6 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:staging": "tauri build -- --mode staging",
-    "start": "tauri dev",
     "docker:setup": "docker compose build",
     "docker:dev": "docker compose up --build",
     "docker:dev:bg": "docker compose up --build -d",
