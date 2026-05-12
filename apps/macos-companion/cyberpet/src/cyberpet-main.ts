@@ -950,6 +950,43 @@ function initAccessoryPicker() {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Demo mode — mascot stays alive when camera is denied or restricted.
+// Cycles through states with random timing and drifts pupils gently.
+// ---------------------------------------------------------------------------
+
+function startDemoMode() {
+  mascotCard.dataset.cameraOff = 'true'
+  setTrackerDot('inactive')
+
+  // Gentle state cycle: mostly idle, occasional attentive/happy/tired
+  const cycle: MascotState[] = [
+    'idle', 'idle', 'idle', 'attentive',
+    'idle', 'idle', 'happy',
+    'idle', 'idle', 'tired',
+    'idle', 'attentive', 'idle',
+  ]
+  let ci = 0
+  function nextDemoState() {
+    proposeMascotState(cycle[ci % cycle.length])
+    ci++
+    setTimeout(nextDemoState, 3500 + Math.random() * 4500)
+  }
+  setTimeout(nextDemoState, 1200)
+
+  // Gentle pupil drift — sinusoidal wander so eyes aren't frozen
+  let phase = 0
+  function driftPupils() {
+    phase += 0.018
+    const dx = Math.sin(phase * 0.73) * 2.2
+    const dy = Math.sin(phase * 0.51) * 1.6
+    if (mascot3d)     mascot3d.update(undefined, dx, dy, false)
+    else if (mascotSvg) setPupilOffset(mascotSvg, dx, dy)
+    requestAnimationFrame(driftPupils)
+  }
+  requestAnimationFrame(driftPupils)
+}
+
 async function init() {
   initMascotRenderer()
   initTraitReview()
@@ -1003,6 +1040,9 @@ async function init() {
     setTimeout(showOnboarding, 300)
   } else if (state === 'authorized') {
     startTracker()
+  } else {
+    // denied or restricted — mascot stays alive without camera
+    startDemoMode()
   }
 }
 

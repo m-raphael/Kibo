@@ -1571,6 +1571,28 @@ body:has([data-theme="xiaomi"]) *:focus-visible {
 .builder-accessory-row .accessory-item { flex-shrink: 0; }
 
 /* ==========================================================================
+   DEMO MODE — camera denied / restricted
+   ========================================================================== */
+
+/* Tracker dot pulses slowly to signal "alive but no camera" */
+#mascot-card[data-camera-off="true"] .tracker-dot {
+  background: var(--text-tertiary);
+  animation: demo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes demo-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.80; }
+}
+
+/* Subtle camera-off label below the state badge */
+#mascot-card[data-camera-off="true"] #mascot-state::after {
+  content: ' · no camera';
+  opacity: 0.45;
+  font-size: 0.85em;
+}
+
+/* ==========================================================================
    FULLSCREEN / EXPANDED VIEW
    body.fullscreen-mode is toggled by the fullscreen button.
    The Three.js ResizeObserver picks up the new #mascot-face dimensions
