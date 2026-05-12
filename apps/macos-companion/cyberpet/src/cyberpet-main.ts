@@ -254,6 +254,15 @@ function applyMascotState(s: MascotState) {
 
   mascotLabel.textContent = s
   invoke('set_mascot_state', { state: s }).catch(() => {})
+  syncTray(s)
+}
+
+let _trayMascot = 'CyberPet'
+let _trayState  = 'idle'
+
+function syncTray(state?: MascotState) {
+  if (state) _trayState = state
+  invoke('update_tray_tooltip', { mascot: _trayMascot, state: _trayState }).catch(() => {})
 }
 
 function proposeMascotState(next: MascotState) {
@@ -667,6 +676,8 @@ function initTraitReview() {
     if (mascot3d) mascot3d.setMascot(species)
     localStorage.setItem('cyberpet:mascot-id', species)
     if (_lastKey) storeFaceAssignment(_lastKey, species)
+    const meta = MASCOT_LIST.find(m => m.id === species)
+    if (meta) { _trayMascot = meta.label; syncTray() }
     mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
       const active = p.dataset.id === species
       p.dataset.active = String(active)
@@ -1037,6 +1048,8 @@ function buildSelectorUI(activeMascot: MascotId = savedMascotId()) {
 
       mascot3d.setMascot(id)
       localStorage.setItem(MASCOT_STORAGE_KEY, id)
+      _trayMascot = meta.label
+      syncTray()
 
       mascotSelector.querySelectorAll<HTMLButtonElement>('.mascot-pill').forEach(p => {
         const active = p.dataset.id === id

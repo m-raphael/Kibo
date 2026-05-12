@@ -4,7 +4,10 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::{Emitter, Manager};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 
 // Guards against spawning more than one tracker subprocess.
 static TRACKER_RUNNING: AtomicBool = AtomicBool::new(false);
@@ -76,31 +79,9 @@ fn open_camera_settings() {
 fn toggle_fullscreen(app: tauri::AppHandle) -> Result<bool, String> {
     let window = app.get_webview_window("main")
         .ok_or_else(|| "window not found".to_string())?;
-
-    let sf   = window.scale_factor().map_err(|e| e.to_string())?;
-    let phys = window.inner_size().map_err(|e| e.to_string())?;
-    // Compact window is 320 logical px; anything wider is already expanded
-    let should_expand = (phys.width as f64 / sf) <= 400.0;
-
-    window.set_resizable(true).map_err(|e| e.to_string())?;
-
-    if should_expand {
-        let monitor = window.current_monitor()
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| "no monitor".to_string())?;
-        let ms  = monitor.size();
-        let mf  = monitor.scale_factor();
-        let max = (ms.width as f64 / mf).min(ms.height as f64 / mf);
-        let sz  = (max * 0.85).clamp(600.0, 900.0);
-        window.set_size(tauri::LogicalSize::new(sz, sz)).map_err(|e| e.to_string())?;
-        window.center().map_err(|e| e.to_string())?;
-    } else {
-        window.set_size(tauri::LogicalSize::new(320.0f64, 320.0f64))
-              .map_err(|e| e.to_string())?;
-    }
-
-    window.set_resizable(false).map_err(|e| e.to_string())?;
-    Ok(should_expand)
+    let is_fs = window.is_fullscreen().map_err(|e| e.to_string())?;
+    window.set_fullscreen(!is_fs).map_err(|e| e.to_string())?;
+    Ok(!is_fs)
 }
 
 // ---------------------------------------------------------------------------
@@ -309,8 +290,65 @@ fn start_tracker(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 // ---------------------------------------------------------------------------
+// Tray state — current mascot label for tooltip
+// ---------------------------------------------------------------------------
+
+static TRAY_LABEL: Mutex<String> = Mutex::new(String::new());
+
+#[tauri::command]
+fn update_tray_tooltip(app: tauri::AppHandle, mascot: String, state: String) {
+    if let Ok(mut label) = TRAY_LABEL.lock() {
+        *label = format!("{} · {}", mascot, state);
+    }
+    if let Some(tray) = app.tray_by_id("main") {
+        let tip = format!("CyberPet — {} · {}", mascot, state);
+        let _ = tray.set_tooltip(Some(&tip));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // App entry point
 // ---------------------------------------------------------------------------
+
+fn build_tray(app: &tauri::App) -> tauri::Result<()> {
+    let show_hide = MenuItem::with_id(app, "show_hide", "Show / Hide", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let quit      = MenuItem::with_id(app, "quit", "Quit CyberPet", true, None::<&str>)?;
+    let menu      = Menu::with_items(app, &[&show_hide, &separator, &quit])?;
+
+    TrayIconBuilder::with_id("main")
+        .icon(app.default_window_icon().cloned().unwrap())
+        .icon_as_template(true)   // macOS: renders as template (auto dark/light)
+        .menu(&menu)
+        .tooltip("CyberPet")
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show_hide" => toggle_main_window(app),
+            "quit"      => app.exit(0),
+            _           => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event {
+                toggle_main_window(tray.app_handle())
+            }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+fn toggle_main_window(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        if win.is_visible().unwrap_or(false) {
+            let _ = win.hide();
+        } else {
+            let _ = win.show();
+            let _ = win.set_focus();
+        }
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -324,7 +362,12 @@ pub fn run() {
             get_mascot_state,
             set_mascot_state,
             toggle_fullscreen,
+            update_tray_tooltip,
         ])
+        .setup(|app| {
+            build_tray(app)?;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
 }
