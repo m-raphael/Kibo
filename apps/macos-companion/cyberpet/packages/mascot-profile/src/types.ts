@@ -1,5 +1,5 @@
 import type { FacialProfile, AnimalType, FaceShape, EyeShape } from '@cyberpet/mascot-core'
-import { assignFromTraitsLLM } from './llm-adapter.js'
+import { assignFromTraitsLLMWithFallback } from './llm-adapter.js'
 export type { LlmConfig } from './llm-adapter.js'
 
 // ---------------------------------------------------------------------------
@@ -276,20 +276,20 @@ export interface AssignmentResultWithSource extends AssignmentResult {
  */
 export async function assignMascot(
   traits: Trait[],
-  config?: import('./llm-adapter.js').LlmConfig | null,
+  configs?: import('./llm-adapter.js').LlmConfig | import('./llm-adapter.js').LlmConfig[] | null,
   profile?: FacialProfile | null,
 ): Promise<AssignmentResultWithSource> {
-  // Merge visual appearance traits into the trait list for the LLM prompt
-  const allTraits = profile
-    ? [...traits, ...appearanceTraits(profile)]
-    : traits
+  const allTraits = profile ? [...traits, ...appearanceTraits(profile)] : traits
 
-  if (config?.apiKey) {
+  const chain = (Array.isArray(configs) ? configs : configs ? [configs] : [])
+    .filter(c => c.apiKey)
+
+  if (chain.length > 0) {
     try {
-      const result = await assignFromTraitsLLM(allTraits, config)
+      const result = await assignFromTraitsLLMWithFallback(allTraits, chain)
       return { ...result, source: 'llm' }
     } catch (err) {
-      console.warn('[CyberPet] LLM assignment failed — using local rules.', err)
+      console.warn('[CyberPet] All LLM providers failed — using local rules.', err)
     }
   }
   return { ...assignFromTraits(traits, profile ?? undefined), source: 'local' }

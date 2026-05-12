@@ -284,6 +284,26 @@ function parseResponse(raw: unknown): AssignmentResult {
 // Public API
 // ---------------------------------------------------------------------------
 
+/**
+ * Try each config in order — moves to the next on any failure (rate limit, network, parse error).
+ * Throws only if every provider in the chain fails.
+ */
+export async function assignFromTraitsLLMWithFallback(
+  traits: Trait[],
+  configs: LlmConfig[],
+): Promise<AssignmentResult> {
+  let lastErr: unknown
+  for (const cfg of configs) {
+    try {
+      return await assignFromTraitsLLM(traits, cfg)
+    } catch (err) {
+      console.warn(`[CyberPet] ${cfg.provider} failed — trying next provider`, err)
+      lastErr = err
+    }
+  }
+  throw lastErr ?? new Error('All LLM providers failed')
+}
+
 export async function assignFromTraitsLLM(traits: Trait[], config: LlmConfig): Promise<AssignmentResult> {
   const defaults = PROVIDER_DEFAULTS[config.provider]
 

@@ -1,8 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // Active provider (change this to switch; matching key is auto-resolved)
-  readonly VITE_LLM_PROVIDER:        string | undefined
+  // Fallback chain — tried in order when the primary provider rate-limits or fails
+  readonly VITE_LLM_PROVIDER:        string | undefined  // Tier 1 (primary)
+  readonly VITE_LLM_FALLBACK_1:      string | undefined  // Tier 2
+  readonly VITE_LLM_FALLBACK_2:      string | undefined  // Tier 3
+  readonly VITE_LLM_FALLBACK_3:      string | undefined  // Tier 4 (local guarantee)
   readonly VITE_LLM_MODEL:           string | undefined
 
   // Per-provider API keys

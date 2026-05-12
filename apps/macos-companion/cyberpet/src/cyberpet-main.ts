@@ -499,57 +499,80 @@ function toggleDebug() {
 const AI_KEY_STORE      = 'cyberpet:ai-key'
 const AI_PROVIDER_STORE = 'cyberpet:ai-provider'
 
-// Per-provider key lookup — reads VITE_<PROVIDER>_API_KEY from .env
+// Resolve the API key for a given provider name from VITE_* env vars
 function resolveProviderKey(provider: string): string {
   const e = import.meta.env
   const map: Record<string, string> = {
-    'anthropic':          e.VITE_ANTHROPIC_API_KEY   ?? '',
-    'nvidia-nim':         e.VITE_NVIDIA_API_KEY       ?? '',
-    'groq':               e.VITE_GROQ_API_KEY         ?? '',
-    'huggingface':        e.VITE_HUGGINGFACE_API_KEY  ?? '',
-    'openrouter':         e.VITE_OPENROUTER_API_KEY   ?? '',
-    'together':           e.VITE_TOGETHER_API_KEY     ?? '',
-    'gemini':             e.VITE_GEMINI_API_KEY        ?? '',
-    'xai':                e.VITE_XAI_API_KEY           ?? '',
-    'openai-compatible':  e.VITE_OPENAI_API_KEY       ?? '',
+    'anthropic':         e.VITE_ANTHROPIC_API_KEY  ?? '',
+    'nvidia-nim':        e.VITE_NVIDIA_API_KEY      ?? '',
+    'groq':              e.VITE_GROQ_API_KEY        ?? '',
+    'huggingface':       e.VITE_HUGGINGFACE_API_KEY ?? '',
+    'openrouter':        e.VITE_OPENROUTER_API_KEY  ?? '',
+    'together':          e.VITE_TOGETHER_API_KEY    ?? '',
+    'gemini':            e.VITE_GEMINI_API_KEY      ?? '',
+    'xai':               e.VITE_XAI_API_KEY         ?? '',
+    'openai-compatible': e.VITE_OPENAI_API_KEY      ?? '',
   }
   return map[provider] ?? ''
 }
 
-function loadLlmConfig(): LlmConfig | null {
-  // 1. Settings panel takes priority (key entered manually in the UI)
+function buildConfig(provider: string): LlmConfig | null {
+  if (!provider || provider === 'none') return null
+  const key = resolveProviderKey(provider)
+  if (!key) return null
+  return {
+    provider: provider as LlmConfig['provider'],
+    apiKey:   key,
+    model:    (import.meta.env.VITE_LLM_MODEL    as string | undefined) ||
+              (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || undefined,
+    baseUrl:  (import.meta.env.VITE_OPENAI_BASE_URL as string | undefined) ||
+              (import.meta.env.VITE_NVIDIA_NIM_BASE  as string | undefined) || undefined,
+  }
+}
+
+/**
+ * Returns the ordered fallback chain of LLM configs to try.
+ *
+ * Priority:
+ *   1. Settings UI (localStorage) — single config, always wins
+ *   2. .env chain: VITE_LLM_PROVIDER → FALLBACK_1 → FALLBACK_2 → FALLBACK_3
+ *   3. Claude Code auto-inject (ANTHROPIC_API_KEY) — appended if not already in chain
+ *   4. Empty array → assignMascot falls back to local rule-based
+ */
+function loadLlmConfigs(): LlmConfig[] {
+  // 1. Settings panel key — short-circuits the chain entirely
   const uiKey      = localStorage.getItem(AI_KEY_STORE)
   const uiProvider = localStorage.getItem(AI_PROVIDER_STORE) as LlmConfig['provider'] | null
-  if (uiKey && uiProvider) return { provider: uiProvider, apiKey: uiKey }
+  if (uiKey && uiProvider) return [{ provider: uiProvider, apiKey: uiKey }]
 
-  // 2. .env: VITE_LLM_PROVIDER selects provider; matching VITE_<PROVIDER>_API_KEY used automatically
-  const envProvider = (import.meta.env.VITE_LLM_PROVIDER ?? '') as string
-  if (envProvider && envProvider !== 'none') {
-    const envKey = resolveProviderKey(envProvider)
-    if (envKey) {
-      return {
-        provider: envProvider as LlmConfig['provider'],
-        apiKey:   envKey,
-        model:    (import.meta.env.VITE_LLM_MODEL       as string | undefined) ||
-                  (import.meta.env.VITE_OPENAI_MODEL    as string | undefined) || undefined,
-        baseUrl:  (import.meta.env.VITE_OPENAI_BASE_URL as string | undefined) ||
-                  (import.meta.env.VITE_NVIDIA_NIM_BASE as string | undefined) || undefined,
-      }
-    }
-  }
+  // 2. .env fallback chain
+  const chain: LlmConfig[] = [
+    import.meta.env.VITE_LLM_PROVIDER,
+    import.meta.env.VITE_LLM_FALLBACK_1,
+    import.meta.env.VITE_LLM_FALLBACK_2,
+    import.meta.env.VITE_LLM_FALLBACK_3,
+  ]
+    .filter((p): p is string => Boolean(p))
+    .map(buildConfig)
+    .filter((c): c is LlmConfig => c !== null)
 
-  // 3. Claude Code CLI auto-injects ANTHROPIC_API_KEY — use it when present
+  // 3. Claude Code Pro auto-inject — append only if anthropic not already in chain
   const claudeKey = (import.meta.env.ANTHROPIC_API_KEY ?? '') as string
-  if (claudeKey) {
-    return {
+  if (claudeKey && !chain.some(c => c.provider === 'anthropic')) {
+    chain.push({
       provider: 'anthropic',
       apiKey:   claudeKey,
       model:    (import.meta.env.VITE_LLM_MODEL as string | undefined) || 'claude-haiku-4-5-20251001',
-    }
+    })
   }
 
-  // 4. No key anywhere → local rule-based assignment
-  return null
+  return chain  // empty → local rule-based fallback in assignMascot
+}
+
+// Keep a single-config shim so existing call sites that pass one config still work
+function loadLlmConfig(): LlmConfig | null {
+  const chain = loadLlmConfigs()
+  return chain[0] ?? null
 }
 
 let aiPanelOpen = false
@@ -607,10 +630,10 @@ function initTraitReview() {
     reviewHandle.destroy()
     reviewHandle = buildTraitReview(profile)
 
-    // Rewire save callback — pass facial profile so appearance shapes the result
+    // Rewire save callback — pass full fallback chain so providers cascade on failure
     reviewHandle.onSave((traits, _animal) => {
-      const config = loadLlmConfig()
-      assignMascot(traits, config, facialProfile ?? null).then(result => {
+      const configs = loadLlmConfigs()
+      assignMascot(traits, configs, facialProfile ?? null).then(result => {
         assignment.show(result, traits)
       })
     })
