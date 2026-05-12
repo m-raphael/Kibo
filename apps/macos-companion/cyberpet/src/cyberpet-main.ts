@@ -499,25 +499,46 @@ function toggleDebug() {
 const AI_KEY_STORE      = 'cyberpet:ai-key'
 const AI_PROVIDER_STORE = 'cyberpet:ai-provider'
 
+// Per-provider key lookup — reads VITE_<PROVIDER>_API_KEY from .env
+function resolveProviderKey(provider: string): string {
+  const e = import.meta.env
+  const map: Record<string, string> = {
+    'anthropic':          e.VITE_ANTHROPIC_API_KEY   ?? '',
+    'nvidia-nim':         e.VITE_NVIDIA_API_KEY       ?? '',
+    'groq':               e.VITE_GROQ_API_KEY         ?? '',
+    'huggingface':        e.VITE_HUGGINGFACE_API_KEY  ?? '',
+    'openrouter':         e.VITE_OPENROUTER_API_KEY   ?? '',
+    'together':           e.VITE_TOGETHER_API_KEY     ?? '',
+    'gemini':             e.VITE_GEMINI_API_KEY        ?? '',
+    'xai':                e.VITE_XAI_API_KEY           ?? '',
+    'openai-compatible':  e.VITE_OPENAI_API_KEY       ?? '',
+  }
+  return map[provider] ?? ''
+}
+
 function loadLlmConfig(): LlmConfig | null {
-  // 1. Settings panel takes priority (key entered in the UI)
+  // 1. Settings panel takes priority (key entered manually in the UI)
   const uiKey      = localStorage.getItem(AI_KEY_STORE)
   const uiProvider = localStorage.getItem(AI_PROVIDER_STORE) as LlmConfig['provider'] | null
   if (uiKey && uiProvider) return { provider: uiProvider, apiKey: uiKey }
 
-  // 2. VITE_LLM_* explicit config in .env
+  // 2. .env: VITE_LLM_PROVIDER selects provider; matching VITE_<PROVIDER>_API_KEY used automatically
   const envProvider = (import.meta.env.VITE_LLM_PROVIDER ?? '') as string
-  const envKey      = (import.meta.env.VITE_LLM_API_KEY  ?? '') as string
-  if (envProvider && envProvider !== 'none' && envKey) {
-    return {
-      provider: envProvider as LlmConfig['provider'],
-      apiKey:   envKey,
-      model:    (import.meta.env.VITE_LLM_MODEL    as string | undefined) || undefined,
-      baseUrl:  (import.meta.env.VITE_LLM_BASE_URL as string | undefined) || undefined,
+  if (envProvider && envProvider !== 'none') {
+    const envKey = resolveProviderKey(envProvider)
+    if (envKey) {
+      return {
+        provider: envProvider as LlmConfig['provider'],
+        apiKey:   envKey,
+        model:    (import.meta.env.VITE_LLM_MODEL       as string | undefined) ||
+                  (import.meta.env.VITE_OPENAI_MODEL    as string | undefined) || undefined,
+        baseUrl:  (import.meta.env.VITE_OPENAI_BASE_URL as string | undefined) ||
+                  (import.meta.env.VITE_NVIDIA_NIM_BASE as string | undefined) || undefined,
+      }
     }
   }
 
-  // 3. Auto-detect Claude Code Pro subscription (ANTHROPIC_API_KEY injected by the CLI)
+  // 3. Claude Code CLI auto-injects ANTHROPIC_API_KEY — use it when present
   const claudeKey = (import.meta.env.ANTHROPIC_API_KEY ?? '') as string
   if (claudeKey) {
     return {
@@ -527,6 +548,7 @@ function loadLlmConfig(): LlmConfig | null {
     }
   }
 
+  // 4. No key anywhere → local rule-based assignment
   return null
 }
 
