@@ -35,7 +35,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
-  envPrefix: ['VITE_', 'TAURI_'],
+  // ANTHROPIC_API_KEY is injected automatically by the Claude Code CLI,
+  // so we expose it to the frontend for zero-config LLM usage.
+  envPrefix: ['VITE_', 'TAURI_', 'ANTHROPIC_'],
 
   define: {
     // Accessible as __APP_ENV__ in source (no VITE_ prefix needed)

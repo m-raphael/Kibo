@@ -505,7 +505,7 @@ function loadLlmConfig(): LlmConfig | null {
   const uiProvider = localStorage.getItem(AI_PROVIDER_STORE) as LlmConfig['provider'] | null
   if (uiKey && uiProvider) return { provider: uiProvider, apiKey: uiKey }
 
-  // 2. Fall back to .env (VITE_LLM_* — set at dev time, baked in at build time)
+  // 2. VITE_LLM_* explicit config in .env
   const envProvider = (import.meta.env.VITE_LLM_PROVIDER ?? '') as string
   const envKey      = (import.meta.env.VITE_LLM_API_KEY  ?? '') as string
   if (envProvider && envProvider !== 'none' && envKey) {
@@ -514,6 +514,16 @@ function loadLlmConfig(): LlmConfig | null {
       apiKey:   envKey,
       model:    (import.meta.env.VITE_LLM_MODEL    as string | undefined) || undefined,
       baseUrl:  (import.meta.env.VITE_LLM_BASE_URL as string | undefined) || undefined,
+    }
+  }
+
+  // 3. Auto-detect Claude Code Pro subscription (ANTHROPIC_API_KEY injected by the CLI)
+  const claudeKey = (import.meta.env.ANTHROPIC_API_KEY ?? '') as string
+  if (claudeKey) {
+    return {
+      provider: 'anthropic',
+      apiKey:   claudeKey,
+      model:    (import.meta.env.VITE_LLM_MODEL as string | undefined) || 'claude-haiku-4-5-20251001',
     }
   }
 
