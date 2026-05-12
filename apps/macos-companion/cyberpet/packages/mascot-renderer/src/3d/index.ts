@@ -87,12 +87,29 @@ function stateTargets(state: MascotState, dx: number, dy: number): AnimTargets {
   return t
 }
 
-function expLerp(cur: number, tgt: number, a: number): number {
-  return cur + (tgt - cur) * a
+// Frame-rate independent exponential decay lerp.
+// k controls speed: k=14 → ~50ms to half-way; k=6 → ~115ms; k=2.5 → ~280ms; k=1.2 → ~580ms
+function dlerp(cur: number, tgt: number, k: number, dt: number): number {
+  return cur + (tgt - cur) * (1 - Math.exp(-k * dt))
 }
 
-const LERP_FAST   = 0.14  // pupil tracking
-const LERP_NORMAL = 0.07  // state transitions
+const K_FAST = 14   // pupils — snappy eye tracking
+const K_MED  = 6    // head, eyes, mouth, body — responsive
+const K_SLOW = 2.5  // ears — floppy, inertial
+const K_TAIL = 1.2  // tail — laziest, maximum physical lag
+
+// Brief "entry pose" that plays before the real target, creating natural
+// anticipation and overshoot without velocity tracking.
+// e.g. happy: eyes widen first (surprise) → then squint (joy)
+const ENTRY_MS = 180
+
+const ENTRY_BOOST: Partial<Record<MascotState, Partial<AnimTargets>>> = {
+  happy:     { eyeScaleY: 1.45, headPosY: 0.10, tailRotZ: 0.55 },
+  attentive: { earLRotX: -0.52, earRRotX: -0.52, headPosY: 0.14, eyeScaleY: 1.35 },
+  tired:     { headPosY: -0.24, eyeScaleY: 0.04, bodyPosY: -0.09 },
+  speaking:  { mouthScaleY: 2.4, headPosY: 0.06 },
+  listening: { headRotZ: 0.20, earLRotX: -0.52, earRRotX: 0.20 },
+}
 
 // ---------------------------------------------------------------------------
 // Build the full 3D mascot renderer
@@ -134,8 +151,25 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
     ;(mascot.head.material as THREE.MeshStandardMaterial).color.setHex(headHex)
   }
 
-  let tgt: AnimTargets = { ...TARGET_NEUTRAL }
-  let cur: AnimTargets = { ...TARGET_NEUTRAL }
+  let tgt:     AnimTargets = { ...TARGET_NEUTRAL }
+  let realTgt: AnimTargets = { ...TARGET_NEUTRAL }
+  let cur:     AnimTargets = { ...TARGET_NEUTRAL }
+
+  let prevState:  MascotState | undefined
+  let entryTimer: ReturnType<typeof setTimeout> | null = null
+
+  function setStateTargets(state: MascotState, dx: number, dy: number) {
+    realTgt = stateTargets(state, dx, dy)
+    const boost = ENTRY_BOOST[state]
+    if (boost && state !== prevState) {
+      tgt = { ...realTgt, ...boost }
+      if (entryTimer) clearTimeout(entryTimer)
+      entryTimer = setTimeout(() => { tgt = realTgt; entryTimer = null }, ENTRY_MS)
+    } else {
+      tgt = realTgt
+    }
+    prevState = state
+  }
 
   let breathePhase = 0
   let blinkPhase   = 0
@@ -157,24 +191,22 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
     const isBlink = blinkPhase > 3.8 && blinkPhase < 3.89
     if (blinkPhase >= 3.89) blinkPhase = 0
 
-    // Lerp targets
-    const lerp = (c: number, t: number, a: number) => expLerp(c, t, a)
-
-    cur.bodyScaleY  = lerp(cur.bodyScaleY,  tgt.bodyScaleY,  LERP_NORMAL)
-    cur.bodyPosY    = lerp(cur.bodyPosY,    tgt.bodyPosY,    LERP_NORMAL)
-    cur.headPosY    = lerp(cur.headPosY,    tgt.headPosY,    LERP_NORMAL)
-    cur.headRotZ    = lerp(cur.headRotZ,    tgt.headRotZ,    LERP_NORMAL)
-    cur.headRotX    = lerp(cur.headRotX,    tgt.headRotX,    LERP_NORMAL)
-    cur.earLRotX    = lerp(cur.earLRotX,    tgt.earLRotX,    LERP_NORMAL)
-    cur.earRRotX    = lerp(cur.earRRotX,    tgt.earRRotX,    LERP_NORMAL)
-    cur.eyeScaleY   = lerp(cur.eyeScaleY,   tgt.eyeScaleY,   LERP_NORMAL)
-    cur.pupilL_X    = lerp(cur.pupilL_X,    tgt.pupilL_X,    LERP_FAST)
-    cur.pupilL_Y    = lerp(cur.pupilL_Y,    tgt.pupilL_Y,    LERP_FAST)
-    cur.pupilR_X    = lerp(cur.pupilR_X,    tgt.pupilR_X,    LERP_FAST)
-    cur.pupilR_Y    = lerp(cur.pupilR_Y,    tgt.pupilR_Y,    LERP_FAST)
-    cur.mouthScaleY = lerp(cur.mouthScaleY, tgt.mouthScaleY, LERP_NORMAL)
-    cur.tailRotZ    = lerp(cur.tailRotZ,    tgt.tailRotZ,    LERP_NORMAL)
-    cur.tailRotX    = lerp(cur.tailRotX,    tgt.tailRotX,    LERP_NORMAL)
+    // Frame-rate independent lerp with per-channel inertia
+    cur.bodyScaleY  = dlerp(cur.bodyScaleY,  tgt.bodyScaleY,  K_MED,  dt)
+    cur.bodyPosY    = dlerp(cur.bodyPosY,    tgt.bodyPosY,    K_MED,  dt)
+    cur.headPosY    = dlerp(cur.headPosY,    tgt.headPosY,    K_MED,  dt)
+    cur.headRotZ    = dlerp(cur.headRotZ,    tgt.headRotZ,    K_MED,  dt)
+    cur.headRotX    = dlerp(cur.headRotX,    tgt.headRotX,    K_MED,  dt)
+    cur.earLRotX    = dlerp(cur.earLRotX,    tgt.earLRotX,    K_SLOW, dt)
+    cur.earRRotX    = dlerp(cur.earRRotX,    tgt.earRRotX,    K_SLOW, dt)
+    cur.eyeScaleY   = dlerp(cur.eyeScaleY,   tgt.eyeScaleY,   K_MED,  dt)
+    cur.pupilL_X    = dlerp(cur.pupilL_X,    tgt.pupilL_X,    K_FAST, dt)
+    cur.pupilL_Y    = dlerp(cur.pupilL_Y,    tgt.pupilL_Y,    K_FAST, dt)
+    cur.pupilR_X    = dlerp(cur.pupilR_X,    tgt.pupilR_X,    K_FAST, dt)
+    cur.pupilR_Y    = dlerp(cur.pupilR_Y,    tgt.pupilR_Y,    K_FAST, dt)
+    cur.mouthScaleY = dlerp(cur.mouthScaleY, tgt.mouthScaleY, K_MED,  dt)
+    cur.tailRotZ    = dlerp(cur.tailRotZ,    tgt.tailRotZ,    K_TAIL, dt)
+    cur.tailRotX    = dlerp(cur.tailRotX,    tgt.tailRotX,    K_TAIL, dt)
 
     const breatheSin = Math.sin(breathePhase)
     mascot.apply(cur, isBlink, breatheSin)
@@ -194,12 +226,14 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
 
     update(state?: MascotState, dx = 0, dy = 0) {
       if (state !== undefined) {
-        tgt = stateTargets(state, dx, dy)
+        setStateTargets(state, dx, dy)
       } else {
-        tgt.pupilL_X = dx * 0.02
-        tgt.pupilL_Y = dy * 0.02
-        tgt.pupilR_X = dx * 0.02
-        tgt.pupilR_Y = dy * 0.02
+        // Pupil-only update — keep in sync with both tgt and realTgt
+        const px = dx * 0.02, py = dy * 0.02
+        tgt.pupilL_X = px;  tgt.pupilL_Y = py
+        tgt.pupilR_X = px;  tgt.pupilR_Y = py
+        realTgt.pupilL_X = px; realTgt.pupilL_Y = py
+        realTgt.pupilR_X = px; realTgt.pupilR_Y = py
       }
     },
 
@@ -209,8 +243,11 @@ export function buildMascot3d(container?: HTMLElement): ThreeMascotHandle {
       mascotId = id
       mascot   = buildMascot(id)
       handle.group.add(mascot.group)
-      cur = { ...TARGET_NEUTRAL }
-      tgt = { ...TARGET_NEUTRAL }
+      cur     = { ...TARGET_NEUTRAL }
+      tgt     = { ...TARGET_NEUTRAL }
+      realTgt = { ...TARGET_NEUTRAL }
+      prevState = undefined
+      if (entryTimer) { clearTimeout(entryTimer); entryTimer = null }
       blinkPhase = 0
       // Snapshot new mascot's original colors then re-apply current palette
       originalBodyHex = snapshotBodyColor()
