@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -169,6 +170,10 @@ struct TrackerFrame {
     blink: f32,
     smile: f32,
     mouth_open: f32,
+    // Pass appearance through as opaque JSON — keeps Rust in sync automatically
+    // when Python adds new appearance fields without requiring Rust changes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    appearance: Option<JsonValue>,
 }
 
 fn tracker_script(app: &tauri::AppHandle) -> PathBuf {
