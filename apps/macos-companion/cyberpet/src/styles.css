@@ -314,7 +314,10 @@ html, body {
   flex-direction: column;
   gap: 14px;
   flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+#settings-body::-webkit-scrollbar { display: none; }
 
 .setting-section {
   display: flex;
@@ -497,6 +500,21 @@ html, body {
 
 .ghost-btn:hover { color: var(--text-primary); }
 
+/* Nav rows in settings — full-width with chevron pushed to far right */
+#builder-btn,
+#trait-review-btn,
+#accessory-btn,
+#palette-btn {
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* Slight visual grouping between the three action buttons */
+#accessory-btn,
+#palette-btn {
+  margin-top: 2px;
+}
+
 #debug-chevron {
   transition: transform 0.18s ease;
 }
@@ -623,6 +641,7 @@ body:has([data-theme="xiaomi"]) #settings-panel {
   left: 0;
   right: 0;
   height: auto;
+  max-height: 82%;
   transform: translateY(0);
   transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1),
               opacity 0.20s ease;
