@@ -47,8 +47,10 @@ html, body {
 /* Control buttons — flexbox group, top-left corner */
 #card-controls {
   position: absolute;
-  top: 11px;
-  left: 11px;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -264,6 +266,7 @@ html, body {
 #settings-panel {
   position: absolute;
   inset: 0;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -616,8 +619,10 @@ html, body {
 
 /* Xiaomi theme — controls group stays top-left */
 #mascot-card[data-theme="xiaomi"] #card-controls {
-  top: 14px;
-  left: 14px;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
   gap: 7px;
 }
 
